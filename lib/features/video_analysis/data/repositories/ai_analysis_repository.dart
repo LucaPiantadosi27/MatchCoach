@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -37,20 +38,30 @@ class AiAnalysisRepository {
     XFile videoFile, {
     TeamContext? teamContext,
   }) async {
+    final bytes = await videoFile.readAsBytes();
+    return analyzeMatchVideoFromBytes(bytes, videoFile.name, teamContext: teamContext);
+  }
+
+  /// Analizza partita da bytes diretti (più affidabile su web)
+  Future<AnalysisResult> analyzeMatchVideoFromBytes(
+    Uint8List bytes,
+    String fileName, {
+    TeamContext? teamContext,
+  }) async {
     if (_apiKey.isEmpty) throw Exception('API Key mancante.');
 
     try {
-      // 1. Upload del video via Gemini File API
-      final fileName = await _uploadLargeVideo(videoFile);
+      // 1. Upload del video via Gemini File API (da bytes)
+      final uploadedFileName = await _uploadVideoBytes(bytes, bytes.length);
 
       // 2. Attesa disponibilità file e recupero metadati (URI e Durata)
-      final fileData = await _waitForFileActive(fileName);
+      final fileData = await _waitForFileActive(uploadedFileName);
       final fileUri = fileData['uri'] as String;
       final totalDurationSeconds = fileData['duration'] as double;
       debugPrint('Video caricato: $fileUri, Durata: ${totalDurationSeconds}s');
 
       // 3. Calcolo dei Chunk (es. ogni 2 minuti = 120 secondi per gestire i 3 FPS)
-      const int chunkSeconds = 120; 
+      const int chunkSeconds = 120;
       int numChunks = (totalDurationSeconds / chunkSeconds).ceil();
       if (numChunks == 0) numChunks = 1;
 
@@ -123,12 +134,18 @@ class AiAnalysisRepository {
     }
   }
 
-  /// Upload Resumable tramite File API
+  /// Upload Resumable tramite File API (da XFile)
   Future<String> _uploadLargeVideo(XFile videoFile) async {
     final length = await videoFile.length();
+    final bytes = await videoFile.readAsBytes();
+    return _uploadVideoBytes(bytes, length);
+  }
+
+  /// Upload diretto da bytes (più affidabile su web)
+  Future<String> _uploadVideoBytes(Uint8List bytes, int length) async {
     const mimeType = 'video/mp4';
     final urlStart = Uri.parse('https://generativelanguage.googleapis.com/upload/v1beta/files?key=$_apiKey');
-    
+
     final headers = {
       'X-Goog-Upload-Protocol': 'resumable',
       'X-Goog-Upload-Command': 'start',
@@ -136,7 +153,7 @@ class AiAnalysisRepository {
       'X-Goog-Upload-Header-Content-Type': mimeType,
       'Content-Type': 'application/json',
     };
-    
+
     final body = jsonEncode({
       "file": {"display_name": "Match ${DateTime.now().millisecondsSinceEpoch}"}
     });
@@ -147,32 +164,31 @@ class AiAnalysisRepository {
     final uploadUrlStr = resStart.headers['x-goog-upload-url'];
     if (uploadUrlStr == null) throw Exception('Upload URL mancante.');
 
-    final uploadUrl = Uri.parse(uploadUrlStr);
-    final request = http.StreamedRequest('POST', uploadUrl);
-    request.headers.addAll({
-      'Content-Length': length.toString(),
-      'X-Goog-Upload-Offset': '0',
-      'X-Goog-Upload-Command': 'upload, finalize',
-    });
-
-    videoFile.openRead().listen(
-      (chunk) => request.sink.add(chunk),
-      onDone: () => request.sink.close(),
-      onError: (e) => request.sink.addError(e),
+    // Upload diretto con POST e body bytes
+    final uploadRes = await http.post(
+      Uri.parse(uploadUrlStr),
+      headers: {
+        'Content-Length': length.toString(),
+        'X-Goog-Upload-Offset': '0',
+        'X-Goog-Upload-Command': 'upload, finalize',
+        'Content-Type': 'application/octet-stream',
+      },
+      body: bytes,
     );
 
-    final response = await request.send();
-    final stringResponse = await response.stream.bytesToString();
-    if (response.statusCode != 200) throw Exception('Upload failed: $stringResponse');
+    if (uploadRes.statusCode != 200) {
+      throw Exception('Upload failed: ${uploadRes.statusCode} ${uploadRes.body}');
+    }
 
-    final data = jsonDecode(stringResponse);
-    return data['file']['name']; 
+    final data = jsonDecode(uploadRes.body);
+    return data['file']['name'];
   }
 
-  /// Polling dello stato del file
+  /// Polling dello stato del file (max 10 minuti)
   Future<Map<String, dynamic>> _waitForFileActive(String fileName) async {
     int attempts = 0;
-    while (attempts < 60) {
+    const maxAttempts = 120; // 120 * 5s = 10 minuti
+    while (attempts < maxAttempts) {
       final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/$fileName?key=$_apiKey');
       final res = await http.get(url);
       if (res.statusCode == 200) {
@@ -181,15 +197,17 @@ class AiAnalysisRepository {
           String? durStr = data['videoMetadata']?['duration'];
           double durSec = 0.0;
           if (durStr != null) durSec = double.tryParse(durStr.replaceAll('s', '')) ?? 0.0;
+          debugPrint('File pronto dopo ${attempts * 5}s, durata: ${durSec}s');
           return {'uri': data['uri'], 'duration': durSec};
         }
+        debugPrint('Attesa file Gemini... tentativo $attempts/${maxAttempts}');
         await Future.delayed(const Duration(seconds: 5));
         attempts++;
       } else {
         throw Exception('Polling error: ${res.statusCode}');
       }
     }
-    throw Exception('File processing timeout');
+    throw Exception('Timeout: il video impiega troppo tempo per essere processato da Gemini');
   }
 
   Future<Map<String, dynamic>> _sendRestRequest(String apiVer, String model, String prompt, String fileUri) async {

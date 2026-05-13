@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -86,6 +88,7 @@ class MatchDetailPage extends ConsumerWidget {
                           child: videos.isEmpty
                               ? _EmptyClips(match: match, onUploaded: () => ref.invalidate(matchVideosProvider(matchId)))
                               : ReorderableListView.builder(
+                                  buildDefaultDragHandles: false,
                                   padding: const EdgeInsets.symmetric(vertical: 4),
                                   itemCount: videos.length,
                                   onReorder: (oldIdx, newIdx) async {
@@ -298,7 +301,7 @@ class _UploadButton extends ConsumerWidget {
 }
 
 // ── Clip row ──────────────────────────────────────────────────────
-class _ClipRow extends ConsumerWidget {
+class _ClipRow extends ConsumerStatefulWidget {
   final MatchVideoModel video;
   final int index;
   final MatchModel match;
@@ -307,110 +310,252 @@ class _ClipRow extends ConsumerWidget {
   const _ClipRow({super.key, required this.video, required this.index, required this.match, required this.onDeleted, required this.onAnalyzed});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final statusColor = _statusColor(video.analysisStatus);
-    final statusLabel = _statusLabel(video.analysisStatus);
+  ConsumerState<_ClipRow> createState() => _ClipRowState();
+}
+
+class _ClipRowState extends ConsumerState<_ClipRow> {
+  bool _isCancelled = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = _statusColor(widget.video.analysisStatus);
+    final statusLabel = _statusLabel(widget.video.analysisStatus);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
         color: AppTheme.cardColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: video.isAnalyzed ? AppTheme.accentGreenDim.withOpacity(0.4) : AppTheme.sidebarBorderColor),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: widget.video.isAnalyzed 
+            ? AppTheme.accentGreen.withOpacity(0.3) 
+            : AppTheme.sidebarBorderColor,
+          width: widget.video.isAnalyzed ? 1.5 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.all(14),
         child: Row(
           children: [
             // Drag handle
-            const Icon(Icons.drag_handle_rounded, size: 18, color: AppTheme.textMuted),
-            const SizedBox(width: 10),
+            ReorderableDragStartListener(
+              index: widget.index,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  Icons.drag_handle_rounded,
+                  size: 20,
+                  color: AppTheme.textMuted,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
             // Order badge
             Container(
-              width: 28, height: 28,
-              decoration: BoxDecoration(color: AppTheme.sidebarSectionColor, borderRadius: BorderRadius.circular(6)),
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppTheme.accentGreen.withOpacity(0.2), AppTheme.accentGreen.withOpacity(0.1)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.accentGreen.withOpacity(0.3)),
+              ),
               alignment: Alignment.center,
-              child: Text('${index + 1}', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+              child: Text(
+                '${widget.index + 1}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.accentGreen,
+                ),
+              ),
             ),
-            const SizedBox(width: 10),
-            // Info
+            const SizedBox(width: 14),
+            // Info section
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(video.videoName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
-                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      const Icon(Icons.video_library_rounded, size: 14, color: AppTheme.textMuted),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          widget.video.videoName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(4),
+                          color: statusColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: statusColor.withOpacity(0.3), width: 0.5),
                         ),
-                        child: Text(statusLabel, style: TextStyle(fontSize: 10, color: statusColor, fontWeight: FontWeight.w600)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: statusColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              statusLabel,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: statusColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      if (video.isAnalyzed) ...[
-                        const SizedBox(width: 8),
-                        Text('${_fmtN(video.totalTokens)} tok', style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+                      if (widget.video.isAnalyzed) ...[
+                        const SizedBox(width: 10),
+                        Icon(Icons.token_outlined, size: 12, color: AppTheme.textMuted.withOpacity(0.7)),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${_fmtN(widget.video.totalTokens)} tok',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textMuted.withOpacity(0.9),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ],
                   ),
                 ],
               ),
             ),
-            // Actions
-            if (!video.isProcessing) ...[
-              if (!video.isAnalyzed)
-                IconButton(
-                  icon: const Icon(Icons.play_arrow_rounded, size: 18, color: AppTheme.accentGreen),
-                  tooltip: 'Analizza',
-                  onPressed: () => _onAnalyzeTap(context, ref),
-                  visualDensity: VisualDensity.compact,
-                ),
-              if (video.isAnalyzed)
-                IconButton(
-                  icon: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFFF59E0B)),
-                  tooltip: 'Ri-analizza',
-                  onPressed: () => _onReanalyzeTap(context, ref),
-                  visualDensity: VisualDensity.compact,
-                ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppTheme.textMuted),
-                tooltip: 'Elimina',
-                onPressed: () => _onDelete(context, ref),
-                visualDensity: VisualDensity.compact,
-              ),
-            ] else
-              const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentGreen)),
+            const SizedBox(width: 12),
+            // Actions - wrapped in Row to prevent overflow
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.video.isProcessing) ...[
+                  // Stop button + loader during processing
+                  GestureDetector(
+                    onLongPress: _onForceReset,
+                    child: IconButton(
+                      icon: const Icon(Icons.stop_rounded, color: AppTheme.errorColor),
+                      tooltip: 'Ferma analisi (tieni premuto per reset forzato)',
+                      onPressed: _onStopAnalysis,
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                    ),
+                  ),
+                  Container(
+                    width: 40,
+                    height: 40,
+                    alignment: Alignment.center,
+                    child: const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: AppTheme.accentGreen),
+                    ),
+                  ),
+                ] else if (widget.video.analysisStatus == AnalysisStatus.error || widget.video.analysisStatus == AnalysisStatus.cancelled) ...[
+                  // Restart button for error or cancelled
+                  IconButton(
+                    icon: const Icon(Icons.replay_rounded, color: AppTheme.accentGreen),
+                    tooltip: 'Riavvia analisi',
+                    onPressed: _onRestartTap,
+                    visualDensity: VisualDensity.compact,
+                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.textMuted),
+                    tooltip: 'Elimina',
+                    onPressed: () => _onDelete(context, ref),
+                    visualDensity: VisualDensity.compact,
+                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  ),
+                ] else ...[
+                  // Normal actions (pending or done)
+                  if (!widget.video.isAnalyzed)
+                    IconButton(
+                      icon: const Icon(Icons.play_arrow_rounded, color: AppTheme.accentGreen),
+                      tooltip: 'Analizza',
+                      onPressed: _onAnalyzeTap,
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                    ),
+                  if (widget.video.isAnalyzed)
+                    IconButton(
+                      icon: const Icon(Icons.refresh_rounded, color: Color(0xFFF59E0B)),
+                      tooltip: 'Ri-analizza',
+                      onPressed: _onReanalyzeTap,
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.textMuted),
+                    tooltip: 'Elimina',
+                    onPressed: () => _onDelete(context, ref),
+                    visualDensity: VisualDensity.compact,
+                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  void _onAnalyzeTap(BuildContext context, WidgetRef ref) {
-    if (match.team1Color == null) {
+  void _onAnalyzeTap() {
+    setState(() => _isCancelled = false);
+    if (widget.match.team1Color == null) {
       showDialog(
         context: context,
         builder: (_) => _TeamColorsDialog(
-          match: match,
+          match: widget.match,
           onConfirmed: (t1color, t2color) async {
-            await ref.read(matchesRepositoryProvider).updateMatchColors(match.id, t1color, t2color);
-            ref.invalidate(_matchProvider(match.id));
-            if (context.mounted) _startAnalysis(context, ref, t1color, t2color);
+            await ref.read(matchesRepositoryProvider).updateMatchColors(widget.match.id, t1color, t2color);
+            ref.invalidate(_matchProvider(widget.match.id));
+            if (context.mounted) _startAnalysis(t1color, t2color);
           },
         ),
       );
     } else {
-      _startAnalysis(context, ref, match.team1Color!, match.team2Color!);
+      _startAnalysis(widget.match.team1Color!, widget.match.team2Color!);
     }
   }
 
-  void _onReanalyzeTap(BuildContext context, WidgetRef ref) {
+  void _onReanalyzeTap() {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: AppTheme.cardColor,
         title: const Text('Ri-analizza clip', style: TextStyle(color: AppTheme.textPrimary)),
         content: Column(
@@ -424,12 +569,13 @@ class _ClipRow extends ConsumerWidget {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annulla')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Annulla')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF59E0B)),
             onPressed: () {
-              Navigator.pop(context);
-              _startAnalysis(context, ref, match.team1Color ?? '', match.team2Color ?? '');
+              Navigator.pop(dialogContext);
+              setState(() => _isCancelled = false);
+              _startAnalysis(widget.match.team1Color ?? '', widget.match.team2Color ?? '');
             },
             child: const Text('Procedi', style: TextStyle(color: Colors.black)),
           ),
@@ -451,31 +597,63 @@ class _ClipRow extends ConsumerWidget {
     );
   }
 
-  Future<void> _startAnalysis(BuildContext context, WidgetRef ref, String t1color, String t2color) async {
-    // Pick the video file
-    final picker = ImagePicker();
-    final picked = await picker.pickVideo(source: ImageSource.gallery);
-    if (picked == null) return;
+  Future<void> _startAnalysis(String t1color, String t2color) async {
+    // Use HTML file picker for web (more reliable than ImagePicker)
+    final input = html.FileUploadInputElement()..accept = 'video/*';
+    input.click();
+
+    final completer = Completer<html.File?>();
+    input.onChange.listen((_) {
+      completer.complete(input.files?.first);
+    });
+    // Handle cancel
+    html.window.onBlur.listen((_) async {
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!completer.isCompleted) completer.complete(null);
+    });
+
+    final file = await completer.future;
+    if (file == null) return;
+
+    // Create XFile from html.File for the AI repository
+    final reader = html.FileReader();
+    final readCompleter = Completer<Uint8List>();
+    reader.onLoad.listen((_) {
+      readCompleter.complete(reader.result as Uint8List);
+    });
+    reader.readAsArrayBuffer(file);
+    final bytes = await readCompleter.future;
+
+    // Save bytes to a temporary blob and create XFile
+    final blob = html.Blob([bytes]);
+    final url = html.Url.createObjectUrl(blob);
 
     final repo = ref.read(matchesRepositoryProvider);
     final aiRepo = ref.read(aiAnalysisRepositoryProvider);
 
     // Set processing state
-    await repo.updateVideoStatus(video.id, AnalysisStatus.processing);
-    onAnalyzed();
+    await repo.updateVideoStatus(widget.video.id, AnalysisStatus.processing);
+    widget.onAnalyzed();
 
     try {
       final teamCtx = TeamContext(
-        homeName: match.homeTeam,
+        homeName: widget.match.homeTeam,
         homeColor: t1color,
-        awayName: match.awayTeam,
+        awayName: widget.match.awayTeam,
         awayColor: t2color,
       );
 
-      final result = await aiRepo.analyzeMatchVideo(picked, teamContext: teamCtx);
+      // Use internal method to upload bytes directly
+      final result = await aiRepo.analyzeMatchVideoFromBytes(bytes, file.name, teamContext: teamCtx);
+
+      // Check if analysis was cancelled during processing
+      if (_isCancelled || !mounted) {
+        debugPrint('Analisi completata ma era stata cancellata, risultato scartato');
+        return;
+      }
 
       await repo.updateVideoAnalysis(
-        videoId: video.id,
+        videoId: widget.video.id,
         analysisJson: result.statistics.toJson(),
         status: AnalysisStatus.done,
         promptTokens: result.promptTokens,
@@ -484,32 +662,35 @@ class _ClipRow extends ConsumerWidget {
         modelName: 'gemini-flash-lite',
       );
     } catch (e) {
-      await repo.updateVideoStatus(video.id, AnalysisStatus.error);
+      debugPrint('Errore analisi: $e');
+      if (!_isCancelled && mounted) {
+        await repo.updateVideoStatus(widget.video.id, AnalysisStatus.error);
+      }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Errore analisi: $e'), backgroundColor: AppTheme.errorColor),
         );
       }
     }
-    onAnalyzed();
+    if (mounted) widget.onAnalyzed();
   }
 
   Future<void> _onDelete(BuildContext context, WidgetRef ref) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: AppTheme.cardColor,
         title: const Text('Elimina clip', style: TextStyle(color: AppTheme.textPrimary)),
-        content: Text('Eliminare "${video.videoName}"?', style: const TextStyle(color: AppTheme.textSecondary)),
+        content: Text('Eliminare "${widget.video.videoName}"?', style: const TextStyle(color: AppTheme.textSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Elimina', style: TextStyle(color: AppTheme.errorColor))),
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Annulla')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Elimina', style: TextStyle(color: AppTheme.errorColor))),
         ],
       ),
     );
     if (confirm == true) {
-      await ref.read(matchesRepositoryProvider).deleteMatchVideo(video.id);
-      onDeleted();
+      await ref.read(matchesRepositoryProvider).deleteMatchVideo(widget.video.id);
+      widget.onDeleted();
     }
   }
 
@@ -518,6 +699,7 @@ class _ClipRow extends ConsumerWidget {
       case AnalysisStatus.done: return AppTheme.accentGreen;
       case AnalysisStatus.processing: return const Color(0xFF7C4DFF);
       case AnalysisStatus.error: return AppTheme.errorColor;
+      case AnalysisStatus.cancelled: return Colors.orange;
       default: return AppTheme.textMuted;
     }
   }
@@ -526,6 +708,7 @@ class _ClipRow extends ConsumerWidget {
     switch (s) {
       case AnalysisStatus.done: return 'Analizzata';
       case AnalysisStatus.processing: return 'In analisi...';
+      case AnalysisStatus.cancelled: return 'Interrotta';
       case AnalysisStatus.error: return 'Errore';
       default: return 'In attesa';
     }
@@ -535,6 +718,76 @@ class _ClipRow extends ConsumerWidget {
     if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
     return n.toString();
+  }
+
+  Future<void> _onStopAnalysis() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.cardColor,
+        title: const Text('Ferma analisi', style: TextStyle(color: AppTheme.textPrimary)),
+        content: const Text('Vuoi interrompere l\'analisi in corso? Lo stato verrà impostato su "Interrotta".', style: TextStyle(color: AppTheme.textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Annulla')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorColor),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Ferma', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      // Set cancellation flag immediately
+      setState(() => _isCancelled = true);
+      
+      // Update database status
+      try {
+        await ref.read(matchesRepositoryProvider).updateVideoStatus(widget.video.id, AnalysisStatus.cancelled);
+        if (mounted) {
+          widget.onAnalyzed();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Analisi interrotta'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('Errore stop analisi: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Errore: $e'), backgroundColor: AppTheme.errorColor),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _onRestartTap() async {
+    // Reset to pending before restarting
+    await ref.read(matchesRepositoryProvider).updateVideoStatus(widget.video.id, AnalysisStatus.pending);
+    widget.onAnalyzed();
+    // Wait a bit for UI to update
+    await Future.delayed(const Duration(milliseconds: 200));
+    _onAnalyzeTap();
+  }
+
+  Future<void> _onForceReset() async {
+    // Force reset for stuck processing state
+    setState(() => _isCancelled = true);
+    await ref.read(matchesRepositoryProvider).updateVideoStatus(widget.video.id, AnalysisStatus.pending);
+    if (mounted) {
+      widget.onAnalyzed();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Stato resettato a "In attesa"'),
+          backgroundColor: Colors.blue,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 }
 

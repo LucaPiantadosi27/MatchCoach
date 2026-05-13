@@ -1,4 +1,4 @@
-enum AnalysisStatus { pending, processing, done, error }
+enum AnalysisStatus { pending, processing, done, error, cancelled }
 
 class MatchVideoModel {
   final String id;
@@ -58,6 +58,7 @@ class MatchVideoModel {
       case 'processing': return AnalysisStatus.processing;
       case 'done': return AnalysisStatus.done;
       case 'error': return AnalysisStatus.error;
+      case 'cancelled': return AnalysisStatus.cancelled;
       default: return AnalysisStatus.pending;
     }
   }

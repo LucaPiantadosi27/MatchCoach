@@ -768,6 +768,13 @@ class _TacticalBoardPageState extends ConsumerState<TacticalBoardPage> {
                 color: Theme.of(context).cardColor,
                 child: Row(
                   children: [
+                    // Back to home button
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      tooltip: 'Torna alla Home',
+                      onPressed: () => context.go('/home'),
+                    ),
+                    const SizedBox(width: 4),
                     // Sidebar toggle button
                     IconButton(
                       icon: Icon(sidebarVisible ? Icons.menu_open : Icons.menu),
