@@ -149,6 +149,8 @@ class _LoginPageState extends ConsumerState<LoginPage>
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _signIn(),
                             style: const TextStyle(color: AppTheme.textPrimary),
                             decoration: InputDecoration(
                               hintText: '••••••••',
