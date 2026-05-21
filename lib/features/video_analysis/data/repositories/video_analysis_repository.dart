@@ -15,9 +15,10 @@ class VideoAnalysisRepository {
     int promptTokens = 0,
     int completionTokens = 0,
     int totalTokens = 0,
+    String? matchId,
   }) async {
     try {
-      final response = await supabase.from('video_analyses').insert({
+      final data = {
         'user_id': userId,
         'video_name': videoName,
         'analysis_data': analysis.toJson(),
@@ -25,11 +26,28 @@ class VideoAnalysisRepository {
         'completion_tokens': completionTokens,
         'total_tokens': totalTokens,
         'created_at': DateTime.now().toIso8601String(),
-      }).select().single();
+      };
+      
+      if (matchId != null) {
+        data['match_id'] = matchId;
+      }
+      
+      final response = await supabase.from('video_analyses').insert(data).select().single();
 
       return response['id'] as String;
     } catch (e) {
       throw Exception('Errore nel salvataggio dell\'analisi: $e');
+    }
+  }
+  
+  /// Associa un'analisi esistente a una partita
+  Future<void> associateAnalysisToMatch(String analysisId, String matchId) async {
+    try {
+      await supabase.from('video_analyses').update({
+        'match_id': matchId,
+      }).eq('id', analysisId);
+    } catch (e) {
+      throw Exception('Errore nell\'associazione dell\'analisi alla partita: $e');
     }
   }
 

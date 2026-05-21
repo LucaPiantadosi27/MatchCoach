@@ -16,6 +16,8 @@ import 'package:lavagna_tattica/features/video_analysis/presentation/analyses_ar
 import 'package:lavagna_tattica/features/matches/presentation/calendar_page.dart';
 import 'package:lavagna_tattica/features/matches/presentation/matches_list_page.dart';
 import 'package:lavagna_tattica/features/matches/presentation/match_dashboard_page.dart';
+import 'package:lavagna_tattica/features/matches/providers/matches_providers.dart';
+import 'package:lavagna_tattica/features/matches/data/models/match_model.dart';
 
 class VideoAnalysisPage extends ConsumerStatefulWidget {
   final ScoutStatistics? initialResults;
@@ -171,6 +173,9 @@ class _VideoAnalysisPageState extends ConsumerState<VideoAnalysisPage> {
             duration: Duration(seconds: 3),
           ),
         );
+        
+        // Mostra modale per associare l'analisi a una partita
+        _showMatchAssociationDialog(analysisId);
       }
     } catch (e) {
       if (mounted) {
@@ -211,6 +216,80 @@ class _VideoAnalysisPageState extends ConsumerState<VideoAnalysisPage> {
         });
       }
     }
+  }
+
+  Future<void> _showMatchAssociationDialog(String analysisId) async {
+    final matchesAsync = ref.read(matchesProvider);
+    
+    await matchesAsync.when(
+      data: (matches) async {
+        if (matches.isEmpty) {
+          // Nessuna partita disponibile
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                backgroundColor: AppTheme.cardColor,
+                title: const Text('Nessuna partita disponibile', style: TextStyle(color: AppTheme.textPrimary)),
+                content: const Text(
+                  'Non ci sono partite a cui associare questa analisi. Crea prima una partita dalla sezione Partite o Calendario.',
+                  style: TextStyle(color: AppTheme.textSecondary),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+          }
+          return;
+        }
+        
+        // Mostra dialog con lista partite
+        if (mounted) {
+          final selectedMatch = await showDialog<MatchModel?>(
+            context: context,
+            builder: (context) => _MatchSelectionDialog(matches: matches),
+          );
+          
+          if (selectedMatch != null) {
+            try {
+              await ref.read(videoAnalysisRepositoryProvider).associateAnalysisToMatch(analysisId, selectedMatch.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('✅ Analisi associata a "${selectedMatch.displayTitle}"'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Errore: $e'),
+                    backgroundColor: AppTheme.errorColor,
+                  ),
+                );
+              }
+            }
+          }
+        }
+      },
+      loading: () {},
+      error: (e, _) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Errore nel caricamento delle partite: $e'),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
+        }
+      },
+    );
   }
 
   @override
@@ -574,6 +653,67 @@ class _ComparisonRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Match Selection Dialog ────────────────────────────────────────
+class _MatchSelectionDialog extends StatelessWidget {
+  final List<MatchModel> matches;
+  
+  const _MatchSelectionDialog({required this.matches});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppTheme.cardColor,
+      title: const Text('Associa a una partita', style: TextStyle(color: AppTheme.textPrimary)),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Seleziona la partita a cui associare questa analisi:',
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: matches.length,
+                itemBuilder: (context, index) {
+                  final match = matches[index];
+                  return Card(
+                    color: AppTheme.surfaceColor,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: const Icon(Icons.sports_soccer, color: AppTheme.accentGreen),
+                      title: Text(
+                        match.displayTitle,
+                        style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: match.matchDate != null
+                          ? Text(
+                              '${match.matchDate!.day}/${match.matchDate!.month}/${match.matchDate!.year}',
+                              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                            )
+                          : null,
+                      onTap: () => Navigator.pop(context, match),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Salta'),
+        ),
+      ],
     );
   }
 }
