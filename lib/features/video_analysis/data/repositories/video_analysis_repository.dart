@@ -81,6 +81,21 @@ class VideoAnalysisRepository {
     }
   }
 
+  /// Recupera tutte le analisi associate a una partita specifica
+  Future<List<Map<String, dynamic>>> getMatchAnalyses(String matchId) async {
+    try {
+      final response = await supabase
+          .from('video_analyses')
+          .select()
+          .eq('match_id', matchId)
+          .order('created_at', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      throw Exception('Errore nel recupero delle analisi della partita: $e');
+    }
+  }
+
   /// Elimina un'analisi
   Future<void> deleteAnalysis(String analysisId) async {
     try {

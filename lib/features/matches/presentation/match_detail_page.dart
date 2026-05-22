@@ -15,6 +15,8 @@ import 'package:go_router/go_router.dart';
 import 'package:lavagna_tattica/features/matches/providers/matches_providers.dart';
 import 'package:lavagna_tattica/features/video_analysis/data/models/scout_statistics.dart';
 import 'package:lavagna_tattica/features/video_analysis/presentation/video_analysis_page.dart';
+import 'package:lavagna_tattica/features/video_analysis/providers/video_analysis_providers.dart';
+import 'package:lavagna_tattica/features/video_analysis/data/repositories/video_analysis_repository.dart';
 
 class MatchDetailPage extends ConsumerWidget {
   final String matchId;
@@ -23,6 +25,7 @@ class MatchDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final videosAsync = ref.watch(matchVideosProvider(matchId));
+    final analysesAsync = ref.watch(matchAnalysesProvider(matchId));
     final matchAsync = ref.watch(_matchProvider(matchId));
 
     return matchAsync.when(
@@ -30,10 +33,14 @@ class MatchDetailPage extends ConsumerWidget {
       error: (e, _) => Scaffold(body: Center(child: Text('Errore: $e'))),
       data: (match) {
         if (match == null) return const Scaffold(body: Center(child: Text('Partita non trovata')));
-        return videosAsync.when(
+        return analysesAsync.when(
           loading: () => const Scaffold(body: Center(child: CircularProgressIndicator(color: AppTheme.accentGreen))),
           error: (e, _) => Scaffold(body: Center(child: Text('Errore: $e'))),
-          data: (videos) {
+          data: (analyses) {
+            return videosAsync.when(
+              loading: () => const Scaffold(body: Center(child: CircularProgressIndicator(color: AppTheme.accentGreen))),
+              error: (e, _) => Scaffold(body: Center(child: Text('Errore: $e'))),
+              data: (videos) {
             return Scaffold(
                 backgroundColor: AppTheme.surfaceColor,
                 appBar: AppBar(
@@ -68,31 +75,35 @@ class MatchDetailPage extends ConsumerWidget {
                           ),
                         ),
                         Expanded(
-                          child: videos.isEmpty
+                          child: videos.isEmpty && analyses.isEmpty
                               ? _EmptyClips(match: match, onUploaded: () => ref.invalidate(matchVideosProvider(matchId)))
-                              : ReorderableListView.builder(
-                                  buildDefaultDragHandles: false,
+                              : ListView(
                                   padding: const EdgeInsets.symmetric(vertical: 4),
-                                  itemCount: videos.length,
-                                  onReorder: (oldIdx, newIdx) async {
-                                    if (newIdx > oldIdx) newIdx--;
-                                    final repo = ref.read(matchesRepositoryProvider);
-                                    await repo.updateVideoOrder(videos[oldIdx].id, newIdx);
-                                    ref.invalidate(matchVideosProvider(matchId));
-                                  },
-                                  itemBuilder: (ctx, i) => _ClipRow(
-                                    key: ValueKey(videos[i].id),
-                                    video: videos[i],
-                                    index: i,
-                                    match: match,
-                                    onDeleted: () => ref.invalidate(matchVideosProvider(matchId)),
-                                    onAnalyzed: () => ref.invalidate(matchVideosProvider(matchId)),
-                                  ),
+                                  children: [
+                                    ...analyses.map((analysis) => _AnalysisRow(
+                                      key: ValueKey(analysis['id']),
+                                      analysis: analysis,
+                                      match: match,
+                                      onDeleted: () {
+                                        ref.invalidate(matchAnalysesProvider(matchId));
+                                      },
+                                    )),
+                                    ...videos.map((video) => _ClipRow(
+                                      key: ValueKey(video.id),
+                                      video: video,
+                                      index: videos.indexOf(video),
+                                      match: match,
+                                      onDeleted: () => ref.invalidate(matchVideosProvider(matchId)),
+                                      onAnalyzed: () => ref.invalidate(matchVideosProvider(matchId)),
+                                    )),
+                                  ],
                                 ),
                         ),
                   ],
                 ),
               );
+              },
+            );
           },
         );
       },
@@ -614,6 +625,206 @@ class _EmptyClips extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+// ── Analysis Row ──────────────────────────────────────────────────
+class _AnalysisRow extends ConsumerWidget {
+  final Map<String, dynamic> analysis;
+  final MatchModel match;
+  final VoidCallback onDeleted;
+
+  const _AnalysisRow({
+    super.key,
+    required this.analysis,
+    required this.match,
+    required this.onDeleted,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final videoName = analysis['video_name'] as String? ?? 'Analisi Video';
+    final createdAt = analysis['created_at'] as String?;
+    final analysisData = analysis['analysis_data'] as Map<String, dynamic>?;
+    
+    DateTime? date;
+    if (createdAt != null) {
+      try {
+        date = DateTime.parse(createdAt);
+      } catch (_) {}
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF3FB950).withOpacity(0.3)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => _navigateToAnalysis(context),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                // AI Badge
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3FB950).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.smart_toy_rounded,
+                    color: Color(0xFF3FB950),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.analytics_rounded,
+                            size: 14,
+                            color: Color(0xFF3FB950),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'ANALISI AI',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF3FB950),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        videoName,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (date != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          DateFormat('dd/MM/yyyy HH:mm').format(date),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textMuted,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                // Actions
+                IconButton(
+                  icon: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF3FB950)),
+                  tooltip: 'Vai alla chat AI',
+                  onPressed: () => _navigateToAnalysis(context),
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.textMuted),
+                  tooltip: 'Elimina analisi',
+                  onPressed: () => _onDelete(context, ref),
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToAnalysis(BuildContext context) {
+    final analysisData = analysis['analysis_data'] as Map<String, dynamic>?;
+    if (analysisData != null) {
+      try {
+        final stats = ScoutStatistics.fromJson(analysisData);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VideoAnalysisPage(
+              initialResults: stats,
+              initialAnalysisId: analysis['id'] as String,
+            ),
+          ),
+        );
+      } catch (e) {
+        context.go('/video');
+      }
+    } else {
+      context.go('/video');
+    }
+  }
+
+  Future<void> _onDelete(BuildContext context, WidgetRef ref) async {
+    final videoName = analysis['video_name'] as String? ?? 'questa analisi';
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.cardColor,
+        title: const Text('Elimina analisi', style: TextStyle(color: AppTheme.textPrimary)),
+        content: Text(
+          'Eliminare "$videoName"?',
+          style: const TextStyle(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Annulla'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Elimina', style: TextStyle(color: AppTheme.errorColor)),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm == true) {
+      try {
+        await ref.read(videoAnalysisRepositoryProvider).deleteAnalysis(analysis['id'] as String);
+        onDeleted();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Analisi eliminata'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Errore: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 }
 
