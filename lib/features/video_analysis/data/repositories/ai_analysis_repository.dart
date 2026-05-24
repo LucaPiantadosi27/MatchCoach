@@ -62,8 +62,14 @@ class AiAnalysisRepository {
 
       // 3. Calcolo dei Chunk (es. ogni 2 minuti = 120 secondi per gestire i 3 FPS)
       const int chunkSeconds = 120;
-      int numChunks = (totalDurationSeconds / chunkSeconds).ceil();
-      if (numChunks == 0) numChunks = 1;
+      int numChunks;
+      if (totalDurationSeconds <= 0) {
+        debugPrint('⚠️ Durata video non disponibile, analisi intero video');
+        numChunks = 1;
+      } else {
+        numChunks = (totalDurationSeconds / chunkSeconds).ceil();
+        if (numChunks == 0) numChunks = 1;
+      }
 
       List<ScoutStatistics> chunkResults = [];
       int totalPromptTokens = 0;
@@ -72,11 +78,17 @@ class AiAnalysisRepository {
 
       // 4. Analisi Ciclica per Blocchi
       for (int i = 0; i < numChunks; i++) {
-        final double startTime = i * chunkSeconds.toDouble();
-        double endTime = (i + 1) * chunkSeconds.toDouble();
-        if (endTime > totalDurationSeconds) endTime = totalDurationSeconds;
-
-        debugPrint('Analizzando blocco ${i + 1}/$numChunks (Secondi: $startTime - $endTime)');
+        double? startTime;
+        double? endTime;
+        
+        if (totalDurationSeconds > 0) {
+          startTime = i * chunkSeconds.toDouble();
+          endTime = (i + 1) * chunkSeconds.toDouble();
+          if (endTime > totalDurationSeconds) endTime = totalDurationSeconds;
+          debugPrint('Analizzando blocco ${i + 1}/$numChunks (Secondi: $startTime - $endTime)');
+        } else {
+          debugPrint('Analizzando intero video (blocco ${i + 1}/$numChunks)');
+        }
         
         final prompt = _buildAnalysisPrompt(
           startTime: startTime, 
@@ -84,11 +96,12 @@ class AiAnalysisRepository {
           teamContext: teamContext,
         );
 
-        // Fallback tra modelli per ogni chunk
+        // Fallback tra modelli disponibili (verificati con API)
         final fallbacks = [
-          'gemini-flash-lite-latest',
-          'gemini-2.0-flash-lite',
+          'gemini-2.5-flash',
+          'gemini-2.0-flash',
           'gemini-flash-latest',
+          'gemini-2.5-pro',
         ];
 
         Map<String, dynamic>? response;
@@ -105,7 +118,10 @@ class AiAnalysisRepository {
           } catch (e) {
              lastErr = e.toString();
              debugPrint('Chunk ${i+1} fallito con $model: $e');
-             if (lastErr.contains('429')) await Future.delayed(const Duration(seconds: 5));
+             if (lastErr.contains('429')) {
+               debugPrint('⏳ Quota esaurita per $model, attendo 20s prima del prossimo modello...');
+               await Future.delayed(const Duration(seconds: 20));
+             }
           }
         }
 
@@ -219,7 +235,7 @@ class AiAnalysisRepository {
           {"file_data": {"mime_type": "video/mp4", "file_uri": fileUri}}
         ]
       }],
-      "generationConfig": {"temperature": 0.1, "maxOutputTokens": 2048}
+      "generationConfig": {"temperature": 0.1, "maxOutputTokens": 8192}
     });
 
     final res = await http.post(url, headers: {'Content-Type': 'application/json'}, body: body);
@@ -283,16 +299,15 @@ class AiAnalysisRepository {
 
   String _buildAnalysisPrompt({double? startTime, double? endTime, TeamContext? teamContext}) {
     final range = (startTime != null && endTime != null)
-        ? "Analizza solo l'intervallo temporale $startTime - $endTime secondi."
-        : "";
+        ? "Analizza SOLO l'intervallo da $startTime a $endTime secondi del video."
+        : "Analizza l'intero video.";
 
     final teamInfo = teamContext != null
         ? '''
-CONTESTO SQUADRE (usa questi nomi nel JSON):
-- Squadra CASA: "${teamContext.homeName}" — maglia color ${teamContext.homeColor}
-- Squadra OSPITE: "${teamContext.awayName}" — maglia color ${teamContext.awayColor}
-- Tutti gli altri individui in campo sono arbitri o staff tecnico.
-Distingui le squadre dal colore della maglia.
+INFORMAZIONI SQUADRE:
+- Squadra di CASA: "${teamContext.homeName}" (maglia ${teamContext.homeColor})
+- Squadra OSPITE: "${teamContext.awayName}" (maglia ${teamContext.awayColor})
+Identifica le squadre dal colore della maglia e usa i nomi forniti.
 '''
         : '';
 
@@ -300,30 +315,218 @@ Distingui le squadre dal colore della maglia.
     final awayName = teamContext?.awayName ?? 'Squadra Ospite';
 
     return '''
-Analizza questo video di futsal. $range
+Sei un analista tattico professionista di futsal. $range
 $teamInfo
-Ottimizzazione: 3 FPS (3 frame ogni secondo) per la massima precisione tattica.
-Restituisci SOLO un JSON valido come questo:
+ISTRUZIONI CRITICHE:
+1. GUARDA ATTENTAMENTE il video e CONTA i dati REALI
+2. NON inventare dati, NON copiare valori di esempio
+3. Se non vedi qualcosa chiaramente, metti 0
+4. Compila TUTTI i campi del JSON basandoti SOLO su ciò che osservi
+
+Restituisci SOLO un JSON valido con questa struttura COMPLETA per ENTRAMBE le squadre.
+Sostituisci ogni valore con i DATI REALI estratti dal video:
+
 {
   "homeTeam": {
     "teamName": "$homeName",
-    "possessionAndBuildUp": { "totalPossessionPercent": 50 },
-    "offensivePhase": { "shots": { "total": 0 } },
-    "defensivePhase": { "pressureAndRecovery": { "ballRecoveries": 0 } },
-    "advancedIndicators": { "teamXG": 0.0 }
+    "possessionAndBuildUp": {
+      "totalPossessionPercent": 0,
+      "possessionByZone": {"defense": 0, "midfield": 0, "attack": 0},
+      "averagePossessionTimeSeconds": 0.0,
+      "totalPossessions": 0,
+      "averagePassesPerPossession": 0.0,
+      "possessionsType": {"sterile": 0, "productive": 0},
+      "passes": {
+        "total": 0, "accuracyPercent": 0,
+        "direction": {"forward": 0, "lateral": 0, "backward": 0},
+        "betweenLines": 0, "keyPasses": 0, "underPressure": 0,
+        "oneTouch": 0, "twoPlusTouches": 0, "longSequences": 0
+      },
+      "progression": {
+        "ballCarries": 0,
+        "dribbles": {"successful": 0, "failed": 0},
+        "defensiveLineBreaks": 0, "finalThirdEntries": 0
+      }
+    },
+    "offensivePhase": {
+      "shots": {
+        "total": 0, "onTarget": 0, "offTarget": 0, "blocked": 0,
+        "xG": 0.0, "insideArea": 0, "outsideArea": 0, "fromSetPieces": 0
+      },
+      "creation": {
+        "chancesCreated": 0, "bigChances": 0, "assists": 0,
+        "preAssists": 0, "offensive1v1Won": 0, "offBallCuts": 0
+      },
+      "mostDangerousPlayer": {
+        "name": "", "shotsGenerated": 0, "individualXG": 0.0,
+        "chancesCreated": 0, "dribblesSuccessful": 0, "offensiveInvolvementPercent": 0
+      }
+    },
+    "defensivePhase": {
+      "pressureAndRecovery": {
+        "ballRecoveries": 0,
+        "recoveryZones": {"high": 0, "medium": 0, "low": 0},
+        "pressing": {"successful": 0, "failed": 0},
+        "averageRecoveryTimeSeconds": 0.0
+      },
+      "duels": {
+        "defensiveWon": 0, "defensiveLost": 0, "successfulTackles": 0,
+        "interceptions": 0, "shotsBlocked": 0, "defensive1v1": 0
+      },
+      "structure": {
+        "defensiveLine": "", "compactness": "",
+        "defensiveRotations": "", "criticalErrors": 0
+      }
+    },
+    "transitions": {
+      "offensive": {
+        "counterAttacks": 0, "developmentSpeed": "",
+        "outcomes": {"shots": 0, "goals": 0, "lostBalls": 0}
+      },
+      "defensive": {
+        "recoveryTimeSeconds": 0.0, "tacticalFouls": 0, "goalsConcededInTransition": 0
+      }
+    },
+    "spatialAnalysis": {
+      "teamHeatmap": "",
+      "mostUsedZones": [],
+      "chanceCreationZones": [],
+      "recoveryZones": [],
+      "spaceOccupation": {"widthUsage": "", "depthUsage": "", "betweenLinesPlay": ""}
+    },
+    "teamTactics": {
+      "system": {"starting": "", "changes": []},
+      "possession": {"buildUp": "", "rotations": "", "pivotUsage": ""},
+      "defense": {"pressing": "", "style": ""}
+    },
+    "setPieces": {
+      "cornersTaken": 0, "cornerRoutines": 0, "freeKicks": 0,
+      "accumulatedFouls": 0, "doublePenalties": 0
+    },
+    "decisionMaking": {
+      "underPressureChoices": "", "gameTempo": "",
+      "unforcedErrors": 0, "superiorityChoices": ""
+    },
+    "intensityAndTempo": {
+      "gameSpeed": "", "actionsPerMinute": 0.0,
+      "tempoChanges": "", "pressure": ""
+    },
+    "advancedIndicators": {
+      "teamXG": 0.0, "teamXA": 0.0, "ppda": 0.0,
+      "possessionsPerShot": 0.0,
+      "offensiveEfficiencyPercent": 0, "defensiveEfficiencyPercent": 0
+    },
+    "scoutInsights": {
+      "lineBreakers": [], "superiorityCreators": [],
+      "gameSlowers": [], "gameAccelerators": [],
+      "recurrentPatterns": [], "weaknesses": []
+    }
   },
   "awayTeam": {
     "teamName": "$awayName",
-    "possessionAndBuildUp": { "totalPossessionPercent": 50 },
-    "offensivePhase": { "shots": { "total": 0 } },
-    "defensivePhase": { "pressureAndRecovery": { "ballRecoveries": 0 } },
-    "advancedIndicators": { "teamXG": 0.0 }
+    "possessionAndBuildUp": {
+      "totalPossessionPercent": 0,
+      "possessionByZone": {"defense": 0, "midfield": 0, "attack": 0},
+      "averagePossessionTimeSeconds": 0.0,
+      "totalPossessions": 0,
+      "averagePassesPerPossession": 0.0,
+      "possessionsType": {"sterile": 0, "productive": 0},
+      "passes": {
+        "total": 0, "accuracyPercent": 0,
+        "direction": {"forward": 0, "lateral": 0, "backward": 0},
+        "betweenLines": 0, "keyPasses": 0, "underPressure": 0,
+        "oneTouch": 0, "twoPlusTouches": 0, "longSequences": 0
+      },
+      "progression": {
+        "ballCarries": 0,
+        "dribbles": {"successful": 0, "failed": 0},
+        "defensiveLineBreaks": 0, "finalThirdEntries": 0
+      }
+    },
+    "offensivePhase": {
+      "shots": {
+        "total": 0, "onTarget": 0, "offTarget": 0, "blocked": 0,
+        "xG": 0.0, "insideArea": 0, "outsideArea": 0, "fromSetPieces": 0
+      },
+      "creation": {
+        "chancesCreated": 0, "bigChances": 0, "assists": 0,
+        "preAssists": 0, "offensive1v1Won": 0, "offBallCuts": 0
+      },
+      "mostDangerousPlayer": {
+        "name": "", "shotsGenerated": 0, "individualXG": 0.0,
+        "chancesCreated": 0, "dribblesSuccessful": 0, "offensiveInvolvementPercent": 0
+      }
+    },
+    "defensivePhase": {
+      "pressureAndRecovery": {
+        "ballRecoveries": 0,
+        "recoveryZones": {"high": 0, "medium": 0, "low": 0},
+        "pressing": {"successful": 0, "failed": 0},
+        "averageRecoveryTimeSeconds": 0.0
+      },
+      "duels": {
+        "defensiveWon": 0, "defensiveLost": 0, "successfulTackles": 0,
+        "interceptions": 0, "shotsBlocked": 0, "defensive1v1": 0
+      },
+      "structure": {
+        "defensiveLine": "", "compactness": "",
+        "defensiveRotations": "", "criticalErrors": 0
+      }
+    },
+    "transitions": {
+      "offensive": {
+        "counterAttacks": 0, "developmentSpeed": "",
+        "outcomes": {"shots": 0, "goals": 0, "lostBalls": 0}
+      },
+      "defensive": {
+        "recoveryTimeSeconds": 0.0, "tacticalFouls": 0, "goalsConcededInTransition": 0
+      }
+    },
+    "spatialAnalysis": {
+      "teamHeatmap": "",
+      "mostUsedZones": [],
+      "chanceCreationZones": [],
+      "recoveryZones": [],
+      "spaceOccupation": {"widthUsage": "", "depthUsage": "", "betweenLinesPlay": ""}
+    },
+    "teamTactics": {
+      "system": {"starting": "", "changes": []},
+      "possession": {"buildUp": "", "rotations": "", "pivotUsage": ""},
+      "defense": {"pressing": "", "style": ""}
+    },
+    "setPieces": {
+      "cornersTaken": 0, "cornerRoutines": 0, "freeKicks": 0,
+      "accumulatedFouls": 0, "doublePenalties": 0
+    },
+    "decisionMaking": {
+      "underPressureChoices": "", "gameTempo": "",
+      "unforcedErrors": 0, "superiorityChoices": ""
+    },
+    "intensityAndTempo": {
+      "gameSpeed": "", "actionsPerMinute": 0.0,
+      "tempoChanges": "", "pressure": ""
+    },
+    "advancedIndicators": {
+      "teamXG": 0.0, "teamXA": 0.0, "ppda": 0.0,
+      "possessionsPerShot": 0.0,
+      "offensiveEfficiencyPercent": 0, "defensiveEfficiencyPercent": 0
+    },
+    "scoutInsights": {
+      "lineBreakers": [], "superiorityCreators": [],
+      "gameSlowers": [], "gameAccelerators": [],
+      "recurrentPatterns": [], "weaknesses": []
+    }
   },
   "reportSummary": {
-    "overview": "Sintesi...",
-    "analysis": "Dettaglio..."
+    "overview": "[Sintesi di ciò che hai osservato]",
+    "analysis": "[Analisi tattica dettagliata]",
+    "strengthsAndWeaknesses": "[Punti di forza e debolezza osservati]",
+    "conclusions": "[Conclusioni e suggerimenti]"
   }
 }
+
+RICORDA: Sostituisci OGNI valore 0 con i DATI REALI contati dal video!
+Non lasciare tutto a 0 - analizza ATTENTAMENTE il video!
 ''';
   }
 }
