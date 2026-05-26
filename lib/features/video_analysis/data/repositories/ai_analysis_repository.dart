@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'package:flutter/foundation.dart';
+import 'web_upload_helper.dart' if (dart.library.io) 'web_upload_helper_stub.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -38,7 +42,15 @@ class AiAnalysisRepository {
     XFile videoFile, {
     TeamContext? teamContext,
   }) async {
-    final bytes = await videoFile.readAsBytes();
+    final Uint8List bytes;
+    if (kIsWeb) {
+      // Su web leggi dal blob URL tramite XHR nativo, non readAsBytes() che crashava
+      debugPrint('Web: lettura video via XHR blob (${videoFile.path})...');
+      bytes = await readBlobUrl(videoFile.path);
+      debugPrint('Web: letti ${(bytes.length / 1024 / 1024).toStringAsFixed(1)} MB');
+    } else {
+      bytes = await videoFile.readAsBytes();
+    }
     return analyzeMatchVideoFromBytes(bytes, videoFile.name, teamContext: teamContext);
   }
 
@@ -125,7 +137,13 @@ class AiAnalysisRepository {
           }
         }
 
-        if (response == null) throw Exception('Analisi blocco ${i+1} fallita: $lastErr');
+        if (response == null) {
+          final is429 = lastErr?.contains('429') ?? false;
+          if (is429) {
+            throw Exception('Quota API Gemini esaurita su tutti i modelli.\n\nSoluzioni:\n• Attendi qualche minuto e riprova\n• Vai su aistudio.google.com e verifica la quota\n• Considera di abilitare il piano a pagamento per analisi video lunghi');
+          }
+          throw Exception('Analisi blocco ${i+1} fallita: $lastErr');
+        }
         
         final chunkText = response['text'] as String;
         totalPromptTokens += response['promptTokens'] as int;
@@ -180,7 +198,11 @@ class AiAnalysisRepository {
     final uploadUrlStr = resStart.headers['x-goog-upload-url'];
     if (uploadUrlStr == null) throw Exception('Upload URL mancante.');
 
-    // Upload diretto con POST e body bytes
+    // Upload diretto: su web usa XHR nativo per evitare la copia del buffer (http.post duplica i bytes)
+    if (kIsWeb) {
+      return await _uploadBytesXhr(uploadUrlStr, bytes);
+    }
+
     final uploadRes = await http.post(
       Uri.parse(uploadUrlStr),
       headers: {
@@ -198,6 +220,34 @@ class AiAnalysisRepository {
 
     final data = jsonDecode(uploadRes.body);
     return data['file']['name'];
+  }
+
+  /// Upload via XHR nativo (web): passa bytes.buffer senza copiare
+  Future<String> _uploadBytesXhr(String uploadUrl, Uint8List bytes) async {
+    final completer = Completer<String>();
+    final xhr = html.HttpRequest();
+    xhr.open('POST', uploadUrl);
+    xhr.setRequestHeader('Content-Length', bytes.length.toString());
+    xhr.setRequestHeader('X-Goog-Upload-Offset', '0');
+    xhr.setRequestHeader('X-Goog-Upload-Command', 'upload, finalize');
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+    xhr.onLoad.listen((_) {
+      if (xhr.status == 200) {
+        try {
+          final data = jsonDecode(xhr.responseText ?? '');
+          completer.complete(data['file']['name'] as String);
+        } catch (e) {
+          completer.completeError(Exception('Parse risposta upload: $e'));
+        }
+      } else {
+        completer.completeError(Exception('Upload XHR failed: ${xhr.status} ${xhr.responseText}'));
+      }
+    });
+    xhr.onError.listen((_) => completer.completeError(Exception('Upload XHR network error')));
+    // Invia l'ArrayBuffer direttamente senza copiare
+    xhr.send(bytes.buffer);
+    debugPrint('Upload XHR avviato (${(bytes.length / 1024 / 1024).toStringAsFixed(1)} MB)...');
+    return completer.future;
   }
 
   /// Polling dello stato del file (max 10 minuti)
@@ -235,7 +285,7 @@ class AiAnalysisRepository {
           {"file_data": {"mime_type": "video/mp4", "file_uri": fileUri}}
         ]
       }],
-      "generationConfig": {"temperature": 0.1, "maxOutputTokens": 8192}
+      "generationConfig": {"temperature": 0.1, "maxOutputTokens": 65536}
     });
 
     final res = await http.post(url, headers: {'Content-Type': 'application/json'}, body: body);
@@ -254,10 +304,43 @@ class AiAnalysisRepository {
   }
 
   String _extractJson(String text) {
-    final startIndex = text.indexOf('{');
-    final endIndex = text.lastIndexOf('}');
-    if (startIndex != -1 && endIndex != -1) return text.substring(startIndex, endIndex + 1);
-    return text.replaceAll(RegExp(r'```json\n|```json|```'), '').trim();
+    // Rimuovi i wrapper markdown
+    String cleaned = text.replaceAll(RegExp(r'```json\s*|```\s*'), '').trim();
+    final startIndex = cleaned.indexOf('{');
+    final endIndex = cleaned.lastIndexOf('}');
+    if (startIndex != -1 && endIndex != -1) {
+      cleaned = cleaned.substring(startIndex, endIndex + 1);
+    }
+    return _sanitizeJson(cleaned);
+  }
+
+  /// Escapare i newline/tab letterali dentro le stringhe JSON (causa FormatException)
+  String _sanitizeJson(String json) {
+    final sb = StringBuffer();
+    bool inString = false;
+    bool escaped = false;
+    for (int i = 0; i < json.length; i++) {
+      final ch = json[i];
+      if (escaped) {
+        sb.write(ch);
+        escaped = false;
+      } else if (ch == '\\') {
+        sb.write(ch);
+        escaped = true;
+      } else if (ch == '"') {
+        sb.write(ch);
+        inString = !inString;
+      } else if (inString && ch == '\n') {
+        sb.write('\\n');
+      } else if (inString && ch == '\r') {
+        sb.write('\\r');
+      } else if (inString && ch == '\t') {
+        sb.write('\\t');
+      } else {
+        sb.write(ch);
+      }
+    }
+    return sb.toString();
   }
 
   ScoutStatistics _mergeAnalyses(List<ScoutStatistics> chunks) {

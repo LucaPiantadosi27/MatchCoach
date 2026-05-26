@@ -18,6 +18,7 @@ import 'package:lavagna_tattica/features/matches/presentation/matches_list_page.
 import 'package:lavagna_tattica/features/matches/presentation/match_dashboard_page.dart';
 import 'package:lavagna_tattica/features/matches/providers/matches_providers.dart';
 import 'package:lavagna_tattica/features/matches/data/models/match_model.dart';
+import 'package:lavagna_tattica/features/matches/data/repositories/matches_repository.dart';
 
 class VideoAnalysisPage extends ConsumerStatefulWidget {
   final ScoutStatistics? initialResults;
@@ -219,77 +220,73 @@ class _VideoAnalysisPageState extends ConsumerState<VideoAnalysisPage> {
   }
 
   Future<void> _showMatchAssociationDialog(String analysisId) async {
-    final matchesAsync = ref.read(matchesProvider);
-    
-    await matchesAsync.when(
-      data: (matches) async {
-        if (matches.isEmpty) {
-          // Nessuna partita disponibile
+    try {
+      // Carica le partite dal repository
+      final matchesRepo = ref.read(matchesRepositoryProvider);
+      final matches = await matchesRepo.getMatches();
+      
+      if (!mounted) return;
+      
+      if (matches.isEmpty) {
+        // Nessuna partita disponibile
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: AppTheme.cardColor,
+            title: const Text('Nessuna partita disponibile', style: TextStyle(color: AppTheme.textPrimary)),
+            content: const Text(
+              'Non ci sono partite a cui associare questa analisi. Crea prima una partita dalla sezione Partite o Calendario.',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+      
+      // Mostra dialog con lista partite
+      final selectedMatch = await showDialog<MatchModel?>(
+        context: context,
+        builder: (context) => _MatchSelectionDialog(matches: matches),
+      );
+      
+      if (selectedMatch != null && mounted) {
+        try {
+          await ref.read(videoAnalysisRepositoryProvider).associateAnalysisToMatch(analysisId, selectedMatch.id);
           if (mounted) {
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                backgroundColor: AppTheme.cardColor,
-                title: const Text('Nessuna partita disponibile', style: TextStyle(color: AppTheme.textPrimary)),
-                content: const Text(
-                  'Non ci sono partite a cui associare questa analisi. Crea prima una partita dalla sezione Partite o Calendario.',
-                  style: TextStyle(color: AppTheme.textSecondary),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('OK'),
-                  ),
-                ],
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✅ Analisi associata a "${selectedMatch.displayTitle}"'),
+                backgroundColor: Colors.green,
               ),
             );
           }
-          return;
-        }
-        
-        // Mostra dialog con lista partite
-        if (mounted) {
-          final selectedMatch = await showDialog<MatchModel?>(
-            context: context,
-            builder: (context) => _MatchSelectionDialog(matches: matches),
-          );
-          
-          if (selectedMatch != null) {
-            try {
-              await ref.read(videoAnalysisRepositoryProvider).associateAnalysisToMatch(analysisId, selectedMatch.id);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('✅ Analisi associata a "${selectedMatch.displayTitle}"'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
-            } catch (e) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Errore: $e'),
-                    backgroundColor: AppTheme.errorColor,
-                  ),
-                );
-              }
-            }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Errore: $e'),
+                backgroundColor: AppTheme.errorColor,
+              ),
+            );
           }
         }
-      },
-      loading: () {},
-      error: (e, _) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Errore nel caricamento delle partite: $e'),
-              backgroundColor: AppTheme.errorColor,
-            ),
-          );
-        }
-      },
-    );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Errore nel caricamento delle partite: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
   }
 
   @override
