@@ -40,7 +40,7 @@ class DrawingPath {
     return {
       'points': points.map((p) => {'x': p.dx, 'y': p.dy}).toList(),
       'lineStyle': lineStyle.name,
-      'color': color.value,
+      'color': color.toARGB32(),
       'strokeWidth': strokeWidth,
       'hasArrow': hasArrow,
     };
@@ -67,7 +67,7 @@ class DrawingPath {
               ))
           .toList(),
       lineStyle: style,
-      color: Color(json['color'] as int? ?? Colors.white.value),
+      color: Color(json['color'] as int? ?? Colors.white.toARGB32()),
       strokeWidth: (json['strokeWidth'] as num?)?.toDouble() ?? 3.0,
       hasArrow: json['hasArrow'] as bool? ?? false,
     );

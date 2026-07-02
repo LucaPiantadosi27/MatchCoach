@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import 'package:lavagna_tattica/core/theme.dart';
@@ -16,7 +15,6 @@ import 'package:lavagna_tattica/features/video_analysis/presentation/analyses_ar
 import 'package:lavagna_tattica/features/matches/presentation/calendar_page.dart';
 import 'package:lavagna_tattica/features/matches/presentation/matches_list_page.dart';
 import 'package:lavagna_tattica/features/matches/presentation/match_dashboard_page.dart';
-import 'package:lavagna_tattica/features/matches/providers/matches_providers.dart';
 import 'package:lavagna_tattica/features/matches/data/models/match_model.dart';
 import 'package:lavagna_tattica/features/matches/data/repositories/matches_repository.dart';
 
@@ -67,7 +65,6 @@ class _VideoAnalysisPageState extends ConsumerState<VideoAnalysisPage> {
   String _processingStatus = '';
   ScoutStatistics? _analysisResults;
   String? _savedAnalysisId;
-  int _totalTokens = 0;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -93,7 +90,6 @@ class _VideoAnalysisPageState extends ConsumerState<VideoAnalysisPage> {
         _selectedVideo = video;
         _analysisResults = null;
         _savedAnalysisId = null;
-        _totalTokens = 0;
       });
       _initializePreview();
     }
@@ -105,7 +101,7 @@ class _VideoAnalysisPageState extends ConsumerState<VideoAnalysisPage> {
     await _videoController?.dispose();
     
     if (kIsWeb) {
-      _videoController = VideoPlayerController.network(_selectedVideo!.path)
+      _videoController = VideoPlayerController.networkUrl(Uri.parse(_selectedVideo!.path))
         ..initialize().then((_) {
           setState(() {});
         });
@@ -147,7 +143,6 @@ class _VideoAnalysisPageState extends ConsumerState<VideoAnalysisPage> {
       
       setState(() {
         _analysisResults = result.statistics;
-        _totalTokens = result.totalTokens;
         _processingStatus = 'Salvataggio risultati...';
       });
 

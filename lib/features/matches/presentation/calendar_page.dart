@@ -293,7 +293,7 @@ class _CalendarEntryRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.cardColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: hasMatch ? AppTheme.accentGreenDim.withOpacity(0.4) : AppTheme.sidebarBorderColor),
+        border: Border.all(color: hasMatch ? AppTheme.accentGreenDim.withValues(alpha: 0.4) : AppTheme.sidebarBorderColor),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -304,7 +304,7 @@ class _CalendarEntryRow extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: hasMatch ? AppTheme.accentGreenDim.withOpacity(0.15) : AppTheme.sidebarSectionColor,
+                color: hasMatch ? AppTheme.accentGreenDim.withValues(alpha: 0.15) : AppTheme.sidebarSectionColor,
                 borderRadius: BorderRadius.circular(8),
               ),
               alignment: Alignment.center,
@@ -346,7 +346,7 @@ class _CalendarEntryRow extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppTheme.accentGreenDim.withOpacity(0.15),
+                  color: AppTheme.accentGreenDim.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text('Analizzata', style: TextStyle(fontSize: 11, color: AppTheme.accentGreen)),

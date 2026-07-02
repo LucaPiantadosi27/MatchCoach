@@ -12,7 +12,6 @@ import 'package:lavagna_tattica/features/tactical_board/presentation/schemes_lis
 import 'package:lavagna_tattica/features/tactical_board/presentation/widgets/recording_player.dart';
 import 'package:lavagna_tattica/features/tactical_board/presentation/widgets/team_color_dropdown.dart';
 import 'package:lavagna_tattica/features/tactical_board/presentation/widgets/equipment_dropdown.dart';
-import 'package:go_router/go_router.dart';
 
 // ─── Colors used throughout the sidebar ───────────────────────────────────────
 const _section   = AppTheme.sidebarSectionColor;   // #1A1E26
@@ -716,6 +715,7 @@ class SidebarPanel extends ConsumerWidget {
   }
 
   // ─── Equipment grid ────────────────────────────────────────────────────────
+  // ignore: unused_element
   Widget _buildEquipmentGrid(WidgetRef ref) {
     return Wrap(
       spacing: 5,
@@ -824,7 +824,7 @@ class SidebarPanel extends ConsumerWidget {
             Switch(
               value: showGrid,
               onChanged: (v) => ref.read(showGridProvider.notifier).state = v,
-              activeColor: _accent,
+              activeThumbColor: _accent,
               inactiveThumbColor: _textMut,
               inactiveTrackColor: _border,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

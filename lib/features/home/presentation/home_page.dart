@@ -325,7 +325,7 @@ class _SnapshotPreviewSection extends ConsumerWidget {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.photo_library_outlined, size: 36, color: AppTheme.textMuted.withOpacity(0.5)),
+                    Icon(Icons.photo_library_outlined, size: 36, color: AppTheme.textMuted.withValues(alpha: 0.5)),
                     const SizedBox(height: 10),
                     const Text('Nessuno snapshot ancora', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
                     const SizedBox(height: 4),
@@ -352,7 +352,7 @@ class _SnapshotPreviewSection extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: AppTheme.cardColor,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFF9575CD).withOpacity(0.4)),
+                          border: Border.all(color: const Color(0xFF9575CD).withValues(alpha: 0.4)),
                         ),
                         child: const Column(
                           mainAxisAlignment: MainAxisAlignment.center,

@@ -201,7 +201,7 @@ class _MatchListItem extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: AppTheme.accentGreen.withOpacity(0.1),
+                color: AppTheme.accentGreen.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
@@ -233,7 +233,7 @@ class _MatchListItem extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        dateFormat.format(match.date),
+                        match.matchDate != null ? dateFormat.format(match.matchDate!) : '-',
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey[400],
@@ -247,7 +247,7 @@ class _MatchListItem extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        timeFormat.format(match.date),
+                        match.matchDate != null ? timeFormat.format(match.matchDate!) : '-',
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey[400],
@@ -255,7 +255,7 @@ class _MatchListItem extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (match.location.isNotEmpty) ...[
+                  if (match.venue != null && match.venue!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -266,7 +266,7 @@ class _MatchListItem extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          match.location,
+                          match.venue!,
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.grey[400],

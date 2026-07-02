@@ -113,8 +113,8 @@ class TacticalChatRepository {
     // Costruiamo la cronologia testuale
     String historyText = "";
     if (_history.length > 1) {
-      historyText = "\nCronologia conversazione precedente:\n" + 
-        _history.take(_history.length - 1).map((m) => "${m.role == ChatRole.user ? 'UTENTE' : 'COACH'}: ${m.text}").join("\n");
+      final historyEntries = _history.take(_history.length - 1).map((m) => "${m.role == ChatRole.user ? 'UTENTE' : 'COACH'}: ${m.text}").join("\n");
+      historyText = "\nCronologia conversazione precedente:\n$historyEntries";
     }
 
     return '''

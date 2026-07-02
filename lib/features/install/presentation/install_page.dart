@@ -152,9 +152,9 @@ class InstallPage extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue.shade900.withOpacity(0.2),
+                color: Colors.blue.shade900.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade700.withOpacity(0.3)),
+                border: Border.all(color: Colors.blue.shade700.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -225,7 +225,7 @@ class InstallPage extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.15),
+                  color: iconColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: iconColor, size: 24),
@@ -252,7 +252,7 @@ class InstallPage extends ConsumerWidget {
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: AppTheme.accentGreen.withOpacity(0.2),
+                      color: AppTheme.accentGreen.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                       border: Border.all(color: AppTheme.accentGreen, width: 2),
                     ),

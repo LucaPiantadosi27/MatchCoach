@@ -169,7 +169,7 @@ class FieldPainter extends CustomPainter {
     // Left Goal (rettangolo bianco semitrasparente)
     canvas.drawRect(
       Rect.fromLTWH(-goalDepth, size.height * 0.425, goalDepth, goalHeight),
-      Paint()..color = Colors.white.withOpacity(0.6),
+      Paint()..color = Colors.white.withValues(alpha: 0.6),
     );
     // Bordo porta sinistra bianco
     canvas.drawRect(
@@ -183,7 +183,7 @@ class FieldPainter extends CustomPainter {
     // Right Goal (rettangolo bianco semitrasparente)
     canvas.drawRect(
       Rect.fromLTWH(size.width, size.height * 0.425, goalDepth, goalHeight),
-      Paint()..color = Colors.white.withOpacity(0.6),
+      Paint()..color = Colors.white.withValues(alpha: 0.6),
     );
     // Bordo porta destra bianco
     canvas.drawRect(
@@ -300,7 +300,7 @@ class FieldPainter extends CustomPainter {
     final goalHeight = fieldHeight * 0.2;
     canvas.drawRect(
       Rect.fromLTWH(-goalDepth, fieldHeight * 0.4, goalDepth, goalHeight),
-      Paint()..color = Colors.white.withOpacity(0.6),
+      Paint()..color = Colors.white.withValues(alpha: 0.6),
     );
     canvas.drawRect(
       Rect.fromLTWH(-goalDepth, fieldHeight * 0.4, goalDepth, goalHeight),
@@ -380,7 +380,7 @@ class FieldPainter extends CustomPainter {
     final goalHeight = fieldHeight * 0.2;
     canvas.drawRect(
       Rect.fromLTWH(fieldWidth, fieldHeight * 0.4, goalDepth, goalHeight),
-      Paint()..color = Colors.white.withOpacity(0.6),
+      Paint()..color = Colors.white.withValues(alpha: 0.6),
     );
     canvas.drawRect(
       Rect.fromLTWH(fieldWidth, fieldHeight * 0.4, goalDepth, goalHeight),
@@ -429,6 +429,7 @@ class FieldPainter extends CustomPainter {
     }
   }
 
+  // ignore: unused_element
   void _drawTiledImage(Canvas canvas, Size size, ui.Image image) {
     final paint = Paint()..filterQuality = FilterQuality.medium;
     
@@ -456,6 +457,7 @@ class FieldPainter extends CustomPainter {
     }
   }
 
+  // ignore: unused_element
   void _drawGeneratedParquet(Canvas canvas, Size size, bool isLight) {
     // Base parquet color
     final baseColor = isLight ? const Color(0xFFD4A574) : const Color(0xFF8B6F47);
@@ -475,7 +477,7 @@ class FieldPainter extends CustomPainter {
         final variation = random.nextDouble() * 0.15 - 0.075;
         final plankColor = Color.lerp(
           baseColor,
-          baseColor.withOpacity(0.8),
+          baseColor.withValues(alpha: 0.8),
           variation.abs(),
         )!;
 
@@ -485,7 +487,7 @@ class FieldPainter extends CustomPainter {
         );
 
         final grainPaint = Paint()
-          ..color = baseColor.withOpacity(0.3)
+          ..color = baseColor.withValues(alpha: 0.3)
           ..strokeWidth = 0.5;
 
         for (int i = 0; i < 3; i++) {
@@ -502,7 +504,7 @@ class FieldPainter extends CustomPainter {
     canvas.drawRect(
       Offset.zero & size,
       Paint()
-        ..color = Colors.white.withOpacity(0.05)
+        ..color = Colors.white.withValues(alpha: 0.05)
         ..style = PaintingStyle.fill,
     );
   }

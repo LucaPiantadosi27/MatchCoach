@@ -2,16 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lavagna_tattica/features/auth/providers/auth_providers.dart';
-import 'package:lavagna_tattica/features/premium/presentation/paywall_bottom_sheet.dart';
 import 'package:lavagna_tattica/features/tactical_board/data/models/drawing_path.dart';
-import 'package:lavagna_tattica/features/tactical_board/data/models/player_model.dart';
-import 'package:lavagna_tattica/features/tactical_board/data/models/field_background.dart';
 import 'package:lavagna_tattica/features/tactical_board/presentation/widgets/field_painter.dart';
 import 'package:lavagna_tattica/features/tactical_board/presentation/widgets/drawing_painter.dart';
 import 'package:lavagna_tattica/features/tactical_board/presentation/widgets/draggable_player.dart';
 import 'package:lavagna_tattica/features/tactical_board/presentation/widgets/draggable_equipment.dart';
 import 'package:lavagna_tattica/features/tactical_board/presentation/widgets/grid_painter.dart';
-import 'package:lavagna_tattica/features/tactical_board/presentation/widgets/scheme_preview_dialog.dart';
 import 'package:lavagna_tattica/features/tactical_board/presentation/widgets/sidebar_panel.dart';
 import 'package:lavagna_tattica/features/tactical_board/presentation/schemes_list_page.dart';
 import 'package:lavagna_tattica/features/tactical_board/providers/board_provider.dart';
@@ -21,7 +17,6 @@ import 'package:lavagna_tattica/features/tactical_board/services/export_service.
 import 'package:lavagna_tattica/features/tactical_board/data/models/board_state.dart';
 import 'package:lavagna_tattica/core/theme.dart';
 import 'dart:async';
-import 'dart:ui' as ui;
 
 class TacticalBoardPage extends ConsumerStatefulWidget {
   const TacticalBoardPage({super.key});
@@ -262,7 +257,7 @@ class _TacticalBoardPageState extends ConsumerState<TacticalBoardPage> {
                   gradient: const LinearGradient(colors: [Color(0xFFF9A826), Color(0xFFF57C00)]),
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
-                    BoxShadow(color: const Color(0xFFF57C00).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 2)),
+                    BoxShadow(color: const Color(0xFFF57C00).withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 2)),
                   ],
                 ),
                 child: Row(
@@ -293,7 +288,7 @@ class _TacticalBoardPageState extends ConsumerState<TacticalBoardPage> {
                   gradient: const LinearGradient(colors: [Color(0xFFE53935), Color(0xFFB71C1C)]),
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
-                    BoxShadow(color: const Color(0xFFB71C1C).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 2)),
+                    BoxShadow(color: const Color(0xFFB71C1C).withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 2)),
                   ],
                 ),
                 child: const Row(
@@ -330,7 +325,7 @@ class _TacticalBoardPageState extends ConsumerState<TacticalBoardPage> {
             color: hasRecording ? const Color(0xFF388E3C) : const Color(0xFFB71C1C),
             borderRadius: BorderRadius.circular(8),
             boxShadow: hasRecording ? null : [
-              BoxShadow(color: const Color(0xFFB71C1C).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 2)),
+              BoxShadow(color: const Color(0xFFB71C1C).withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 2)),
             ],
           ),
           child: Row(
@@ -349,29 +344,6 @@ class _TacticalBoardPageState extends ConsumerState<TacticalBoardPage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  /// Compact mode icon for mobile toolbar (smaller than default)
-  Widget _buildModeIconCompact(BuildContext context, InteractionMode mode, IconData icon, String label) {
-    final currentMode = ref.watch(interactionModeProvider);
-    final isSelected = currentMode == mode;
-    return InkWell(
-      onTap: () => ref.read(interactionModeProvider.notifier).state = mode,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: isSelected ? Colors.green : Colors.grey, size: 22),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 9,
-              color: isSelected ? Colors.green : Colors.grey,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -422,11 +394,11 @@ class _TacticalBoardPageState extends ConsumerState<TacticalBoardPage> {
     ref.read(boardProvider.notifier).updateState(updatedBoardState);
 
     if (!mounted) {
-      print('❌ Widget not mounted, cannot show dialog');
+      debugPrint('❌ Widget not mounted, cannot show dialog');
       return;
     }
 
-    print('✅ Showing save dialog for recording: ${recording.duration}s');
+    debugPrint('✅ Showing save dialog for recording: ${recording.duration}s');
 
     final TextEditingController nameController = TextEditingController(
       text: 'Schema ${DateTime.now().day}/${DateTime.now().month} ${DateTime.now().hour}:${DateTime.now().minute}',
@@ -445,9 +417,9 @@ class _TacticalBoardPageState extends ConsumerState<TacticalBoardPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.accentGreen.withOpacity(0.1),
+                color: AppTheme.accentGreen.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.accentGreen.withOpacity(0.3)),
+                border: Border.all(color: AppTheme.accentGreen.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -468,7 +440,7 @@ class _TacticalBoardPageState extends ConsumerState<TacticalBoardPage> {
                 hintText: 'Es: Schema 4-2',
                 prefixIcon: const Icon(Icons.edit, size: 20),
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.05),
+                fillColor: Colors.white.withValues(alpha: 0.05),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
               autofocus: true,
@@ -567,57 +539,7 @@ class _TacticalBoardPageState extends ConsumerState<TacticalBoardPage> {
     }
   }
 
-  Widget _buildCompactTeamButton(BuildContext context, TeamType team, String label, Color color) {
-    return SizedBox(
-      height: 32,
-      child: ElevatedButton.icon(
-        onPressed: () => ref.read(boardProvider.notifier).addPlayer(team),
-        icon: const Icon(Icons.add, size: 14),
-        label: Text(label, style: const TextStyle(fontSize: 11)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-      ),
-    );
-  }
-
-  /// Button that opens a popup with all 12 line styles
-  Widget _buildLineStyleButton(BuildContext context) {
-    final lineStyle = ref.watch(selectedLineStyleProvider);
-    
-    return InkWell(
-      onTap: () {
-        _showLineStylePicker(context);
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: Colors.green, width: 2),
-            ),
-            child: Center(
-              child: _getLineStyleIcon(lineStyle),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Stile',
-            style: TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-
+  // ignore: unused_element
   void _showLineStylePicker(BuildContext context) {
     showDialog(
       context: context,
@@ -644,7 +566,7 @@ class _TacticalBoardPageState extends ConsumerState<TacticalBoardPage> {
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isSelected ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.1),
+                        color: isSelected ? Colors.green.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: isSelected ? Colors.green : Colors.grey.shade300,
@@ -885,106 +807,6 @@ class _TacticalBoardPageState extends ConsumerState<TacticalBoardPage> {
     );
   }
 
-  Future<void> _saveScheme(BuildContext context, boardState) async {
-    final user = ref.read(userProvider).valueOrNull;
-    if (user == null) return;
-
-    if (!user.canSaveScheme) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        builder: (context) => const PaywallBottomSheet(),
-      );
-      return;
-    }
-
-    // Prima chiedi il nome
-    final TextEditingController nameController =
-        TextEditingController(text: boardState.name);
-    final String? name = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Nome Schema'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(hintText: 'Nome schema'),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annulla'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, nameController.text),
-            child: const Text('Avanti'),
-          ),
-        ],
-      ),
-    );
-
-    if (name == null || name.isEmpty) return;
-
-    // Aggiorna il nome nello stato
-    final updatedState = boardState.copyWith(name: name);
-
-    // Mostra preview
-    if (!context.mounted) return;
-    
-    final shouldSave = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => SchemePreviewDialog(
-        boardState: updatedState,
-        onSave: () => Navigator.pop(context, true),
-        onCancel: () => Navigator.pop(context, false),
-      ),
-    );
-
-    if (shouldSave == true && context.mounted) {
-      // Aggiorna solo il nome nello stato
-      ref.read(boardProvider.notifier).state = updatedState;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Schema aggiornato! Usa il pulsante REGISTRA per salvare la registrazione.'),
-          duration: Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
-  Widget _buildModeIcon(
-    BuildContext context,
-    InteractionMode mode,
-    IconData icon,
-    String label,
-  ) {
-    final currentMode = ref.watch(interactionModeProvider);
-    final isSelected = currentMode == mode;
-
-    return InkWell(
-      onTap: () => ref.read(interactionModeProvider.notifier).state = mode,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isSelected ? Colors.green : Colors.grey,
-            size: 28,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: isSelected ? Colors.green : Colors.grey,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// Small custom painter to preview a line style in the picker grid
@@ -1076,7 +898,7 @@ class _LineStylePreviewPainter extends CustomPainter {
         break;
       case LineStyle.highlighter:
         paint.strokeWidth = 6;
-        paint.color = paint.color.withOpacity(0.35);
+        paint.color = paint.color.withValues(alpha: 0.35);
         paint.strokeCap = StrokeCap.butt;
         canvas.drawLine(start, end, paint);
         break;

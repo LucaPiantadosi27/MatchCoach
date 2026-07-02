@@ -75,7 +75,7 @@ class BackgroundSelector extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? background.previewColor.withOpacity(0.3) : Colors.transparent,
+          color: isSelected ? background.previewColor.withValues(alpha: 0.3) : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
           border: Border.all(
             color: isSelected ? background.previewColor : Colors.grey.shade300,

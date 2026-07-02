@@ -108,7 +108,7 @@ class _TeamColorPickerDialogState extends ConsumerState<TeamColorPickerDialog> {
                     border: Border.all(color: Colors.white, width: 2),
                     boxShadow: [
                       BoxShadow(
-                        color: currentColor.withOpacity(0.4),
+                        color: currentColor.withValues(alpha: 0.4),
                         blurRadius: 8,
                         spreadRadius: 2,
                       ),
@@ -160,9 +160,9 @@ class _TeamColorPickerDialogState extends ConsumerState<TeamColorPickerDialog> {
                   setState(() {
                     _showCustomPicker = !_showCustomPicker;
                     if (_showCustomPicker) {
-                      _red = currentColor.red.toDouble();
-                      _green = currentColor.green.toDouble();
-                      _blue = currentColor.blue.toDouble();
+                      _red = (currentColor.r * 255.0).roundToDouble();
+                      _green = (currentColor.g * 255.0).roundToDouble();
+                      _blue = (currentColor.b * 255.0).roundToDouble();
                     }
                   });
                 },
@@ -247,7 +247,7 @@ class _TeamColorPickerDialogState extends ConsumerState<TeamColorPickerDialog> {
                 itemCount: PredefinedColors.colors.length,
                 itemBuilder: (context, index) {
                   final color = PredefinedColors.colors[index];
-                  final isSelected = currentColor.value == color.value;
+                  final isSelected = currentColor.toARGB32() == color.toARGB32();
                   
                   return InkWell(
                     onTap: () => _selectColor(color),
@@ -265,7 +265,7 @@ class _TeamColorPickerDialogState extends ConsumerState<TeamColorPickerDialog> {
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: AppTheme.accentGreen.withOpacity(0.4),
+                                  color: AppTheme.accentGreen.withValues(alpha: 0.4),
                                   blurRadius: 6,
                                   spreadRadius: 1,
                                 ),
@@ -343,9 +343,9 @@ class _TeamColorPickerDialogState extends ConsumerState<TeamColorPickerDialog> {
           child: SliderTheme(
             data: SliderThemeData(
               activeTrackColor: color,
-              inactiveTrackColor: color.withOpacity(0.3),
+              inactiveTrackColor: color.withValues(alpha: 0.3),
               thumbColor: color,
-              overlayColor: color.withOpacity(0.2),
+              overlayColor: color.withValues(alpha: 0.2),
               trackHeight: 4,
             ),
             child: Slider(

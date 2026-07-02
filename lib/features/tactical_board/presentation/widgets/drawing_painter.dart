@@ -67,7 +67,7 @@ class DrawingPainter extends CustomPainter {
         _drawSolid(canvas, pixelPoints, paint);
         break;
       case LineStyle.highlighter:
-        paint.color = path.color.withOpacity(0.35);
+        paint.color = path.color.withValues(alpha: 0.35);
         paint.strokeWidth = path.strokeWidth * 4;
         paint.strokeCap = StrokeCap.butt;
         _drawSolid(canvas, pixelPoints, paint);
@@ -150,8 +150,6 @@ class DrawingPainter extends CustomPainter {
     const dashLen = 12.0;
     const gap = 4.0;
     const dotRadius = 1.5;
-    // Pattern: dash, gap, dot, gap
-    const patternLen = dashLen + gap + dotRadius * 2 + gap;
 
     for (final metric in dartPath.computeMetrics()) {
       double distance = 0.0;
@@ -229,7 +227,6 @@ class DrawingPainter extends CustomPainter {
 
     for (final metric in dartPath.computeMetrics()) {
       double distance = 0.0;
-      Offset? prevPoint;
 
       while (distance < metric.length) {
         final tangent = metric.getTangentForOffset(distance);
@@ -248,7 +245,6 @@ class DrawingPainter extends CustomPainter {
         } else {
           wavyPath.lineTo(point.dx, point.dy);
         }
-        prevPoint = point;
         distance += 2.0;
       }
     }

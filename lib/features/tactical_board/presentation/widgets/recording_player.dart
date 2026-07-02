@@ -209,7 +209,7 @@ class _RecordingPlayerState extends ConsumerState<RecordingPlayer> {
   }) {
     return Material(
       elevation: elevation,
-      shadowColor: color.withOpacity(0.4),
+      shadowColor: color.withValues(alpha: 0.4),
       borderRadius: BorderRadius.circular(size / 2),
       child: InkWell(
         onTap: onPressed,

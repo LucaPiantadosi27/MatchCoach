@@ -90,7 +90,7 @@ class _PlayerPainter extends CustomPainter {
     // Selection glow
     if (player.isSelected) {
       final glowPaint = Paint()
-        ..color = Colors.yellow.withOpacity(0.5)
+        ..color = Colors.yellow.withValues(alpha: 0.5)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 4
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
@@ -123,7 +123,7 @@ class _PlayerPainter extends CustomPainter {
 
     // Draw arms (lateral extensions)
     final armPaint = Paint()
-      ..color = teamColor.withOpacity(0.8)
+      ..color = teamColor.withValues(alpha: 0.8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = armWidth
       ..strokeCap = StrokeCap.round;

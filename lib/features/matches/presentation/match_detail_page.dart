@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -9,7 +8,6 @@ import 'package:lavagna_tattica/core/theme.dart';
 import 'package:lavagna_tattica/features/auth/providers/auth_providers.dart';
 import 'package:lavagna_tattica/features/matches/data/models/match_model.dart';
 import 'package:lavagna_tattica/features/matches/data/models/match_video_model.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:lavagna_tattica/features/matches/data/repositories/matches_repository.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lavagna_tattica/features/matches/providers/matches_providers.dart';
@@ -152,9 +150,9 @@ class _MatchInfoBar extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFFF59E0B).withOpacity(0.15),
+                color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.4)),
+                border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
               ),
               child: const Row(
                 children: [
@@ -240,6 +238,7 @@ class _ClipRow extends ConsumerStatefulWidget {
 }
 
 class _ClipRowState extends ConsumerState<_ClipRow> {
+  // ignore: unused_field
   bool _isCancelled = false;
 
   @override
@@ -254,13 +253,13 @@ class _ClipRowState extends ConsumerState<_ClipRow> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: widget.video.isAnalyzed 
-            ? AppTheme.accentGreen.withOpacity(0.3) 
+            ? AppTheme.accentGreen.withValues(alpha: 0.3) 
             : AppTheme.sidebarBorderColor,
           width: widget.video.isAnalyzed ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -289,12 +288,12 @@ class _ClipRowState extends ConsumerState<_ClipRow> {
               height: 32,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppTheme.accentGreen.withOpacity(0.2), AppTheme.accentGreen.withOpacity(0.1)],
+                  colors: [AppTheme.accentGreen.withValues(alpha: 0.2), AppTheme.accentGreen.withValues(alpha: 0.1)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.accentGreen.withOpacity(0.3)),
+                border: Border.all(color: AppTheme.accentGreen.withValues(alpha: 0.3)),
               ),
               alignment: Alignment.center,
               child: Text(
@@ -337,9 +336,9 @@ class _ClipRowState extends ConsumerState<_ClipRow> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.12),
+                          color: statusColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: statusColor.withOpacity(0.3), width: 0.5),
+                          border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 0.5),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -366,13 +365,13 @@ class _ClipRowState extends ConsumerState<_ClipRow> {
                       ),
                       if (widget.video.isAnalyzed) ...[
                         const SizedBox(width: 10),
-                        Icon(Icons.token_outlined, size: 12, color: AppTheme.textMuted.withOpacity(0.7)),
+                        Icon(Icons.token_outlined, size: 12, color: AppTheme.textMuted.withValues(alpha: 0.7)),
                         const SizedBox(width: 4),
                         Text(
                           '${_fmtN(widget.video.totalTokens)} tok',
                           style: TextStyle(
                             fontSize: 11,
-                            color: AppTheme.textMuted.withOpacity(0.9),
+                            color: AppTheme.textMuted.withValues(alpha: 0.9),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -645,7 +644,6 @@ class _AnalysisRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final videoName = analysis['video_name'] as String? ?? 'Analisi Video';
     final createdAt = analysis['created_at'] as String?;
-    final analysisData = analysis['analysis_data'] as Map<String, dynamic>?;
     
     DateTime? date;
     if (createdAt != null) {
@@ -659,7 +657,7 @@ class _AnalysisRow extends ConsumerWidget {
       decoration: BoxDecoration(
         color: AppTheme.cardColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF3FB950).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFF3FB950).withValues(alpha: 0.3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -675,7 +673,7 @@ class _AnalysisRow extends ConsumerWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3FB950).withOpacity(0.15),
+                    color: const Color(0xFF3FB950).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(

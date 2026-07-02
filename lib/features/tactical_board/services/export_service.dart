@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 // ignore: avoid_web_libraries_in_flutter
@@ -7,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lavagna_tattica/features/auth/providers/auth_providers.dart';
-import 'package:lavagna_tattica/features/tactical_board/data/snapshot_repository.dart';
 import 'package:lavagna_tattica/features/tactical_board/presentation/schemes_list_page.dart';
 
 class ExportService {
@@ -108,7 +106,7 @@ class ExportService {
     try {
       final blob = html.Blob([imageBytes], 'image/png');
       final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
+      html.AnchorElement(href: url)
         ..setAttribute('download', '${fileName}_${DateTime.now().millisecondsSinceEpoch}.png')
         ..click();
       html.Url.revokeObjectUrl(url);

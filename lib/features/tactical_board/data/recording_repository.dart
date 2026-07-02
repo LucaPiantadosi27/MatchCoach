@@ -52,21 +52,23 @@ class RecordingRepository {
   }
 
   Future<SavedRecording?> getRecording(String recordingId) async {
-    final response = await _supabase
-        .from('recordings')
-        .select()
-        .eq('id', recordingId)
-        .single();
+    try {
+      final response = await _supabase
+          .from('recordings')
+          .select()
+          .eq('id', recordingId)
+          .single();
 
-    if (response == null) return null;
-
-    return SavedRecording(
-      id: response['id'] as String,
-      userId: response['user_id'] as String,
-      name: response['name'] as String,
-      recording: MovementRecording.fromJson(response['data'] as Map<String, dynamic>),
-      createdAt: DateTime.parse(response['created_at'] as String),
-    );
+      return SavedRecording(
+        id: response['id'] as String,
+        userId: response['user_id'] as String,
+        name: response['name'] as String,
+        recording: MovementRecording.fromJson(response['data'] as Map<String, dynamic>),
+        createdAt: DateTime.parse(response['created_at'] as String),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> deleteRecording(String recordingId) async {

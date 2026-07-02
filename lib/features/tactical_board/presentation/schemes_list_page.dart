@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 // ignore: avoid_web_libraries_in_flutter
@@ -99,118 +98,6 @@ class SchemesListPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF7C4DFF).withValues(alpha: 0.1),
-              border: Border.all(
-                  color: const Color(0xFF7C4DFF).withValues(alpha: 0.3)),
-            ),
-            child: const Icon(
-              Icons.video_library_rounded,
-              size: 52,
-              color: Color(0xFF9575CD),
-            ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Nessuna registrazione',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Usa la lavagna tattica per\ncrearne una nuova',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppTheme.textSecondary,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 28),
-          Container(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF7C4DFF), Color(0xFF512DA8)],
-              ),
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x557C4DFF),
-                  blurRadius: 14,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  ref.read(isNewSchemeProvider.notifier).state = true;
-                  ref.read(boardProvider.notifier).reset();
-                  context.go('/board');
-                },
-                borderRadius: BorderRadius.circular(10),
-                child: const Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                  child: Text(
-                    'Vai alla Lavagna',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<bool?> _confirmDelete(BuildContext context, String name) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.cardColorElevated,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: AppTheme.sidebarBorderColor),
-        ),
-        title: const Text('Elimina Registrazione',
-            style: TextStyle(color: AppTheme.textPrimary, fontSize: 16)),
-        content: Text('Vuoi eliminare "$name"?',
-            style: const TextStyle(color: AppTheme.textSecondary)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annulla',
-                style: TextStyle(color: AppTheme.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Elimina',
-                style: TextStyle(
-                    color: AppTheme.errorColor,
-                    fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ── Recordings Tab ────────────────────────────────────────────────
@@ -235,8 +122,8 @@ class _RecordingsTab extends ConsumerWidget {
                   padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF7C4DFF).withOpacity(0.1),
-                    border: Border.all(color: const Color(0xFF7C4DFF).withOpacity(0.3)),
+                    color: const Color(0xFF7C4DFF).withValues(alpha: 0.1),
+                    border: Border.all(color: const Color(0xFF7C4DFF).withValues(alpha: 0.3)),
                   ),
                   child: const Icon(Icons.video_library_rounded, size: 52, color: Color(0xFF9575CD)),
                 ),
@@ -301,8 +188,8 @@ class _SnapshotsTab extends ConsumerWidget {
                   padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF7C4DFF).withOpacity(0.1),
-                    border: Border.all(color: const Color(0xFF7C4DFF).withOpacity(0.3)),
+                    color: const Color(0xFF7C4DFF).withValues(alpha: 0.1),
+                    border: Border.all(color: const Color(0xFF7C4DFF).withValues(alpha: 0.3)),
                   ),
                   child: const Icon(Icons.photo_library_rounded, size: 52, color: Color(0xFF9575CD)),
                 ),

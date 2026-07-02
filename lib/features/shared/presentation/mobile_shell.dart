@@ -262,11 +262,11 @@ class _SidebarItem extends StatelessWidget {
             duration: const Duration(milliseconds: 150),
             decoration: BoxDecoration(
               color: _isActive
-                  ? const Color(0xFF9575CD).withOpacity(0.15)
+                  ? const Color(0xFF9575CD).withValues(alpha: 0.15)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: _isActive
-                  ? Border.all(color: const Color(0xFF9575CD).withOpacity(0.3), width: 1)
+                  ? Border.all(color: const Color(0xFF9575CD).withValues(alpha: 0.3), width: 1)
                   : null,
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

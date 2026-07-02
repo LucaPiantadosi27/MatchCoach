@@ -22,6 +22,7 @@ class DraggableEquipment extends ConsumerStatefulWidget {
 class _DraggableEquipmentState extends ConsumerState<DraggableEquipment> {
   Offset? _dragOffset;
   Offset? _rotationStartPoint;
+  // ignore: unused_field
   double _initialRotation = 0;
 
   @override
@@ -64,7 +65,7 @@ class _DraggableEquipmentState extends ConsumerState<DraggableEquipment> {
             height: 40,
             decoration: BoxDecoration(
               color: _dragOffset != null || _rotationStartPoint != null
-                  ? Colors.white.withOpacity(0.3)
+                  ? Colors.white.withValues(alpha: 0.3)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: _dragOffset != null || _rotationStartPoint != null
@@ -118,7 +119,7 @@ class _DraggableEquipmentState extends ConsumerState<DraggableEquipment> {
         borderRadius: BorderRadius.circular(2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 2,
             offset: const Offset(1, 1),
           ),
@@ -164,7 +165,7 @@ class _DraggableEquipmentState extends ConsumerState<DraggableEquipment> {
           borderRadius: BorderRadius.circular(4),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               blurRadius: 2,
               offset: const Offset(1, 1),
             ),
@@ -182,7 +183,7 @@ class _DraggableEquipmentState extends ConsumerState<DraggableEquipment> {
         borderRadius: BorderRadius.circular(2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 3,
             offset: const Offset(1, 1),
           ),
@@ -201,7 +202,7 @@ class _DraggableEquipmentState extends ConsumerState<DraggableEquipment> {
         border: Border.all(color: Colors.white, width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 3,
             offset: const Offset(1, 1),
           ),

@@ -46,7 +46,7 @@ class GridPainter extends CustomPainter {
 
     // Linee centrali più evidenti
     final centerPaint = Paint()
-      ..color = gridColor.withOpacity(0.5)
+      ..color = gridColor.withValues(alpha: 0.5)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 

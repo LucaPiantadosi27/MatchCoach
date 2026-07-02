@@ -4,8 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lavagna_tattica/core/theme.dart';
 import 'package:lavagna_tattica/features/tactical_board/data/models/saved_recording.dart';
-import 'package:lavagna_tattica/features/tactical_board/data/models/player_model.dart';
-import 'package:lavagna_tattica/features/tactical_board/data/models/field_background.dart';
 import 'package:lavagna_tattica/features/tactical_board/providers/board_provider.dart';
 import 'package:lavagna_tattica/features/tactical_board/providers/recording_provider.dart';
 import 'package:lavagna_tattica/features/tactical_board/presentation/widgets/recording_player.dart';
@@ -18,7 +16,6 @@ import 'package:lavagna_tattica/features/tactical_board/presentation/schemes_lis
 import 'dart:ui' as ui;
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
-const _bg     = AppTheme.sidebarColor;
 const _section = AppTheme.sidebarSectionColor;
 const _border  = AppTheme.sidebarBorderColor;
 const _accent  = AppTheme.accentGreen;
@@ -263,7 +260,7 @@ class _RecordingViewerPageState extends ConsumerState<RecordingViewerPage> {
                         borderRadius: BorderRadius.circular(9),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF9575CD).withOpacity(0.3),
+                            color: const Color(0xFF9575CD).withValues(alpha: 0.3),
                             blurRadius: 6,
                             offset: const Offset(0, 3),
                           ),

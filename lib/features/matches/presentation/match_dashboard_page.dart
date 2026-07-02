@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lavagna_tattica/core/theme.dart';
 import 'package:lavagna_tattica/features/matches/data/models/match_model.dart';
-import 'package:lavagna_tattica/features/matches/data/models/match_video_model.dart';
 import 'package:lavagna_tattica/features/matches/data/repositories/matches_repository.dart';
 import 'package:lavagna_tattica/features/matches/providers/matches_providers.dart';
 import 'package:lavagna_tattica/features/video_analysis/data/models/scout_statistics.dart';
@@ -308,7 +307,6 @@ class _ShotsChart extends StatelessWidget {
     final maxShots = withData.fold(1, (m, s) => s.homeShots + s.awayShots > m ? s.homeShots + s.awayShots : m);
     return Column(
       children: withData.map((s) {
-        final total = (s.homeShots + s.awayShots).toDouble().clamp(1, double.infinity);
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Column(
@@ -394,7 +392,7 @@ class _SplitBar extends StatelessWidget {
                   width: leftW.clamp(0, constraints.maxWidth),
                   height: 24,
                   decoration: BoxDecoration(
-                    color: leftColor.withOpacity(0.8),
+                    color: leftColor.withValues(alpha: 0.8),
                     borderRadius: const BorderRadius.horizontal(left: Radius.circular(4)),
                   ),
                 ),
@@ -412,7 +410,7 @@ class _SplitBar extends StatelessWidget {
                   width: rightW.clamp(0, constraints.maxWidth),
                   height: 24,
                   decoration: BoxDecoration(
-                    color: rightColor.withOpacity(0.8),
+                    color: rightColor.withValues(alpha: 0.8),
                     borderRadius: const BorderRadius.horizontal(right: Radius.circular(4)),
                   ),
                 ),
@@ -451,7 +449,7 @@ class _MatchStatusRow extends StatelessWidget {
           color: AppTheme.cardColor,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: hasData ? AppTheme.accentGreenDim.withOpacity(0.4) : AppTheme.sidebarBorderColor,
+            color: hasData ? AppTheme.accentGreenDim.withValues(alpha: 0.4) : AppTheme.sidebarBorderColor,
           ),
         ),
         child: Row(
@@ -480,7 +478,7 @@ class _MatchStatusRow extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: hasData ? AppTheme.accentGreenDim.withOpacity(0.15) : AppTheme.sidebarSectionColor,
+                color: hasData ? AppTheme.accentGreenDim.withValues(alpha: 0.15) : AppTheme.sidebarSectionColor,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(

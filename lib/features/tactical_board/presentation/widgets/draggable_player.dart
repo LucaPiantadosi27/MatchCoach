@@ -220,11 +220,11 @@ class _DraggablePlayerState extends ConsumerState<DraggablePlayer> {
                   child: Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.green.withOpacity(0.15),
-                      border: Border.all(color: Colors.green.withOpacity(0.5), width: 2),
+                      color: Colors.green.withValues(alpha: 0.15),
+                      border: Border.all(color: Colors.green.withValues(alpha: 0.5), width: 2),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.green.withOpacity(0.3),
+                          color: Colors.green.withValues(alpha: 0.3),
                           blurRadius: 12,
                           spreadRadius: 2,
                         ),
@@ -243,7 +243,7 @@ class _DraggablePlayerState extends ConsumerState<DraggablePlayer> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.9),
+                    color: Colors.orange.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(4),
                     boxShadow: const [
                       BoxShadow(

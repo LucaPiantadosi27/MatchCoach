@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'package:flutter/foundation.dart';
@@ -126,7 +125,7 @@ class AiAnalysisRepository {
               prompt,
               fileUri,
             );
-            if (response != null) break;
+            break;
           } catch (e) {
              lastErr = e.toString();
              debugPrint('Chunk ${i+1} fallito con $model: $e');
@@ -139,8 +138,12 @@ class AiAnalysisRepository {
 
         if (response == null) {
           final is429 = lastErr?.contains('429') ?? false;
+          final isResourceExhausted = lastErr?.contains('RESOURCE_EXHAUSTED') ?? false;
+          if (isResourceExhausted) {
+            throw Exception('Crediti API Gemini esauriti.\n\nI crediti prepagati sono terminati.\n\nSoluzioni:\n• Vai su https://ai.google.dev/gemini-api/docs/billing&prepay per ricaricare\n• Oppure attendi il reset della quota gratuita');
+          }
           if (is429) {
-            throw Exception('Quota API Gemini esaurita su tutti i modelli.\n\nSoluzioni:\n• Attendi qualche minuto e riprova\n• Vai su aistudio.google.com e verifica la quota\n• Considera di abilitare il piano a pagamento per analisi video lunghi');
+            throw Exception('Quota API Gemini esaurita temporaneamente.\n\nSoluzioni:\n• Attendi qualche minuto e riprova\n• Vai su aistudio.google.com e verifica la quota\n• Considera di abilitare il piano a pagamento per analisi video lunghi');
           }
           throw Exception('Analisi blocco ${i+1} fallita: $lastErr');
         }
@@ -169,6 +172,7 @@ class AiAnalysisRepository {
   }
 
   /// Upload Resumable tramite File API (da XFile)
+  // ignore: unused_element
   Future<String> _uploadLargeVideo(XFile videoFile) async {
     final length = await videoFile.length();
     final bytes = await videoFile.readAsBytes();
@@ -193,7 +197,12 @@ class AiAnalysisRepository {
     });
 
     final resStart = await http.post(urlStart, headers: headers, body: body);
-    if (resStart.statusCode != 200) throw Exception('Upload start failed: ${resStart.body}');
+    if (resStart.statusCode != 200) {
+      if (resStart.statusCode == 429 || resStart.body.contains('RESOURCE_EXHAUSTED')) {
+        throw Exception('Crediti API Gemini esauriti.\n\nI crediti prepagati sono terminati.\nVai su https://ai.google.dev/gemini-api/docs/billing&prepay per ricaricare\noppure attendi il reset della quota gratuita.');
+      }
+      throw Exception('Upload start failed: (${resStart.statusCode}) ${resStart.body}');
+    }
 
     final uploadUrlStr = resStart.headers['x-goog-upload-url'];
     if (uploadUrlStr == null) throw Exception('Upload URL mancante.');
@@ -263,10 +272,10 @@ class AiAnalysisRepository {
           String? durStr = data['videoMetadata']?['duration'];
           double durSec = 0.0;
           if (durStr != null) durSec = double.tryParse(durStr.replaceAll('s', '')) ?? 0.0;
-          debugPrint('File pronto dopo ${attempts * 5}s, durata: ${durSec}s');
+          debugPrint('File pronto dopo ${attempts * 5}s, durata: $durSec s');
           return {'uri': data['uri'], 'duration': durSec};
         }
-        debugPrint('Attesa file Gemini... tentativo $attempts/${maxAttempts}');
+        debugPrint('Attesa file Gemini... tentativo $attempts/$maxAttempts');
         await Future.delayed(const Duration(seconds: 5));
         attempts++;
       } else {

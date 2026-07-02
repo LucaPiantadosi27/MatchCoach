@@ -132,9 +132,9 @@ class _UsageBody extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: AppTheme.accentGreenDim.withOpacity(0.1),
+                      color: AppTheme.accentGreenDim.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.accentGreenDim.withOpacity(0.3)),
+                      border: Border.all(color: AppTheme.accentGreenDim.withValues(alpha: 0.3)),
                     ),
                     child: const Row(
                       children: [
